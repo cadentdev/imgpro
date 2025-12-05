@@ -524,7 +524,7 @@ For design decisions and feature requirements, refer to [PRD.md](PRD.md).
 
 ## License
 
-[To be determined]
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
