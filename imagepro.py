@@ -11,6 +11,13 @@ import os
 import json
 import math
 
+# Register HEIF opener if pillow-heif is available
+try:
+    from pillow_heif import register_heif_opener
+    register_heif_opener()
+except ImportError:
+    pass  # pillow-heif not installed, HEIF support unavailable
+
 
 __version__ = "1.0.0"
 

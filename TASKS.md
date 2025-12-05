@@ -131,6 +131,12 @@ This document tracks implementation progress based on `PRD.md`.
   - [ ] Add progress bar for batch operations
   - [ ] Consider glob pattern support
 
+- [ ] Add image format detection to `info` command
+  - [ ] Detect actual image format from file content (not just extension)
+  - [ ] Report format via Pillow's `Image.format` attribute
+  - [ ] Add to default, JSON, and CSV outputs
+  - [ ] Distinguish between file extension and actual format (e.g., .HEIC file containing JPEG data)
+
 - [ ] Additional EXIF features
   - [ ] Revisit DPI reporting for IG workflows
   - [ ] Add more EXIF fields based on user feedback
