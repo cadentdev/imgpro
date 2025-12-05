@@ -43,173 +43,222 @@ Generate thumbnail and full-resolution variants of images for lightbox galleries
 - Prepares images for web publishing
 - May use the tool through wrapper scripts
 - Needs consistent, predictable output
+ 
+### Tertiary: Social Media Manager
+- Manages content for platforms like Instagram, TikTok, and Facebook
+- Needs to understand which images are landscape, portrait, or square
+- Needs to quickly see aspect ratios and dimensions to comply with platform constraints
+- Comfortable using shell scripts to batch-inspect large folders of images
+- Uses CSV/JSON reports (from `imagepro info`) to group and select images for posts and carousels
 
 ---
 
 ## 4. Functional Requirements
 
-### 4.1 Core Functionality
+### 4.1 Image Information (`imagepro info`)
 
-#### 4.1.1 Image Resizing
-- **Requirement:** Resize images to specified dimensions while maintaining aspect ratio
+- **Requirement:** Inspect a single image file and report key metadata, orientation, and aspect ratio for scripting and analysis.
 - **Acceptance Criteria:**
-  - Support `--width` parameter with comma-separated list of target widths
-  - Support `--height` parameter with comma-separated list of target heights
-  - Width and height modes are mutually exclusive (cannot specify both in same invocation)
-  - Aspect ratio is always preserved
-  - Output dimensions are exact for the specified axis (width or height)
+  - **Input:**
+    - Accept a required positional `<filepath>` argument: `imagepro info <file> [options]`.
+    - Support absolute and relative paths.
+    - Validate that the file exists and is readable; otherwise print `Error: File not found: <path>` and exit with a non-zero status.
+    - Attempt to open the file with Pillow; if Pillow cannot open it (e.g., non-image or unsupported format like MP4), print a clear "unsupported or unreadable image format" error and exit with a non-zero status.
+  - **Pixel metadata:**
+    - Read the image's pixel dimensions (`width`, `height`), taking EXIF orientation into account so that reported dimensions match the displayed orientation.
+    - Classify orientation as `portrait`, `landscape`, or `square` based on effective `width` and `height`.
+    - Compute the reduced integer aspect ratio `ratio_raw` (e.g., `4:3`) using the greatest common divisor of width and height.
+    - Match `ratio_raw` against a set of common aspect ratios using **exact integer matches only**, including at minimum:
+      - `1:1`, `4:3`, `3:2`, `16:9`, `5:4`, `4:5`, `9:16`, `1.91:1` (implemented via an appropriate integer pair such as `191:100`).
+    - Expose the detected common ratio as `common_ratio` (string) or `none` if there is no exact match.
+  - **File metadata:**
+    - Report file name, path, and file size in kilobytes (KB).
+  - **EXIF metadata:**
+    - Detect whether EXIF data is present.
+    - When available, extract a **curated subset** including:
+      - Date and time the photo was taken (prefer `DateTimeOriginal`; fall back to sensible alternatives such as `DateTime`).
+      - Camera make and model.
+      - Orientation tag.
+      - Resolution/DPI fields when available (`XResolution`, `YResolution`, `ResolutionUnit`).
+    - Expose this curated subset by default in both human-readable and JSON output.
+    - Provide an `--exif-all` flag that outputs all EXIF tags as name/value pairs.
+  - **Output formats:**
+    - **Default (human-readable):**
+      - Print a multi-line summary suitable for terminal use, including file info, pixel dimensions, orientation, aspect ratio, and a short EXIF summary.
+    - **`--json`:**
+      - Print a single JSON object per invocation to stdout.
+      - JSON must include, at minimum: filename, path, width, height, orientation, `ratio_raw`, `common_ratio`, file size (KB), a boolean for EXIF presence, creation date (if known), curated EXIF fields, and full EXIF data when `--exif-all` is specified.
+    - **`--short`:**
+      - Print a single comma-separated line (CSV) per invocation to stdout.
+      - Fields should be in a stable, documented order such as:
+        - `filename,width,height,orientation,ratio_raw,common_ratio,size_kb,creation_date`
+      - Designed for use with shell loops for quick CSV generation, for example:
+        - `for img in *.jpg; do imagepro info "$img" --short >> info.csv; done`
+  - **Format support:**
+    - `imagepro info` must support **any image format that the installed Pillow build can open**, including but not limited to JPEG, PNG, HEIF/HEIC, and certain RAW formats.
+    - Non-image files and unsupported formats (e.g., MP4) must fail with a clear error and non-zero exit code.
 
-#### 4.1.2 Skip Upscaling
-- **Requirement:** Do not upscale images beyond their original dimensions
+### 4.2 Image Resizing (`imagepro resize`)
+
+- **Requirement:** Resize images to specified dimensions while maintaining aspect ratio, without upscaling.
 - **Acceptance Criteria:**
-  - If target size exceeds original dimension, skip that size
-  - Log skipped sizes with reason (e.g., "Skipped 1200px: original is only 800px wide")
-  - Continue processing remaining sizes in the list
+  - **Invocation:**
+    - Support subcommand syntax: `imagepro resize <file> [options]`.
+    - `<file>` is a required positional argument referring to the source image.
+  - **Resize parameters:**
+    - Support `--width <sizes>` with a comma-separated list of integer target widths.
+    - Support `--height <sizes>` with a comma-separated list of integer target heights.
+    - `--width` and `--height` are mutually exclusive within a single invocation.
+    - Output dimensions must be exact for the specified axis (width or height), with the other axis computed to preserve aspect ratio.
+  - **Skip upscaling:**
+    - If a requested target size exceeds the original dimension in the chosen axis, that size must be skipped.
+    - Skipped sizes must be logged with a clear reason (e.g., `Skipped 1200px: original is only 800px wide`).
+    - Processing continues for remaining sizes.
+  - **Input handling:**
+    - Process a single image file per invocation.
+    - Validate that the file exists and is readable; otherwise print `Error: File not found: <path>` and exit with a specific non-zero status.
+    - Support absolute and relative paths, including paths with spaces and Unicode characters.
+    - For the initial implementation, `resize` focuses on JPEG input; non-JPEG files must produce a clear unsupported format error.
+  - **Output organization:**
+    - Default output directory is `./resized/` relative to the current working directory.
+    - Support `--output <directory>` to specify a custom output directory.
+    - Create the output directory if it does not exist.
+    - Preserve the original file extension and case.
+    - Use a predictable naming pattern for outputs: `{basename}_{size}.{ext}` where `size` is the target dimension in pixels along the controlled axis.
+  - **Quality control:**
+    - Support a `--quality <1-100>` parameter controlling JPEG compression quality.
+    - Default quality is 90.
+    - Validate that quality is an integer between 1 and 100; invalid values must result in an error and non-zero exit.
+  - **EXIF metadata handling for resized images:**
+    - Strip EXIF metadata from resized outputs by default to optimize for web delivery.
+    - Maintain color profile (ICC) information during conversion.
+    - Future versions may add flags for preserving EXIF or stripping ICC profiles, but these are out of scope for the initial implementation.
+  - **Format and codec behavior:**
+    - Initial `resize` implementation targets JPEG input and JPEG output only.
+    - Future versions may extend `resize` to work with additional input/output formats in coordination with `imagepro convert`.
 
-#### 4.1.3 Input Handling (Version 1.0)
-- **Requirement:** Process single image file per invocation
-- **Acceptance Criteria:**
-  - Accept `--input <filepath>` parameter
-  - Validate file exists and is readable
-  - Support absolute and relative paths
-  - Error if file is not a supported format
+### 4.3 Image Conversion (`imagepro convert`)
 
-**Future Versions:**
-- Multiple files: `--input file1.jpg file2.jpg`
-- Glob patterns: `--input *.jpg`
-- Directory processing: `--input ./photos/`
+- **Requirement:** Convert images between Pillow-supported formats for web and social media workflows.
+- **Acceptance Criteria (initial high-level):**
+  - **Invocation:**
+    - Support subcommand syntax: `imagepro convert <source> --format <target_format> [options]`.
+    - `<source>` is a required positional argument referring to the input image file.
+    - `--format` is a required option specifying the desired output format (e.g., `jpeg`, `png`, `webp`).
+  - **Format support:**
+    - Accept any image format that Pillow can open as input.
+    - Support at least JPEG and PNG as output formats in the initial version, with a clear path to extend to WebP, AVIF, and others.
+    - Provide meaningful errors for unsupported target formats.
+  - **Output behavior:**
+    - By default, write converted files alongside the source image or to a specified `--output` directory.
+    - Use sensible naming conventions such as `{basename}.{target_ext}` or allow an explicit `--output` path.
+  - **Relationship to resizing:**
+    - `convert` focuses on format and encoding.
+    - `resize` focuses on dimensions and quality.
+    - Future versions may compose both behaviors (e.g., resize and convert in one step), but initial implementations treat them as separate commands.
 
-#### 4.1.4 Output Organization
-- **Requirement:** Save resized images to organized output location
-- **Acceptance Criteria:**
-  - Default output directory: `./resized/` (relative to current working directory)
-  - Support `--output <path>` to specify custom output directory
-  - Create output directory if it doesn't exist
-  - Preserve original file extension
-  - Naming pattern: `{basename}_{size}.{ext}`
-    - Example: `photo.jpg` at 300px → `photo_300.jpg`
-    - Example: `vacation.jpeg` at 600px → `vacation_600.jpeg`
+### 4.4 Command-Line Interface
 
-#### 4.1.5 Quality Control
-- **Requirement:** Control JPEG compression quality
-- **Acceptance Criteria:**
-  - Support `--quality <1-100>` parameter
-  - Default quality: 90
-  - Validate quality is integer between 1-100
-  - Apply quality setting to all output images
-
-#### 4.1.6 EXIF Metadata Handling
-- **Requirement:** Strip EXIF metadata by default for web optimization
-- **Acceptance Criteria:**
-  - Remove all EXIF data from output images
-  - Reduce file size by removing camera metadata
-  - Maintain color profile information (ICC)
-
-**Future Versions:**
-- `--preserve-exif` flag to keep metadata
-- `--strip-all` to remove ICC profiles too
-- Selective EXIF preservation (orientation only, etc.)
-
----
-
-### 4.2 Format Support
-
-#### 4.2.1 Version 1.0 Format Support
-- **Input:** JPEG/JPG only
-- **Output:** JPEG/JPG only
-- **Acceptance Criteria:**
-  - Accept files with `.jpg`, `.jpeg`, `.JPG`, `.JPEG` extensions
-  - Output files maintain input extension case
-  - Reject non-JPEG files with clear error message
-
-#### 4.2.2 Future Format Support
-- **Input:** All Pillow-supported formats (PNG, WebP, TIFF, BMP, GIF, etc.)
-- **Output:** Configurable format conversion
-  - `--format webp` to convert JPEG → WebP
-  - `--format png` for lossless output
-  - Auto-detect optimal format based on content
-
----
-
-### 4.3 Command-Line Interface
-
-#### 4.3.1 Basic Syntax
+#### 4.4.1 Basic Syntax
 ```bash
-scale_image --width <sizes> --input <file> [options]
-scale_image --height <sizes> --input <file> [options]
+imagepro info <file> [options]
+imagepro resize <file> --width <sizes> [options]
+imagepro resize <file> --height <sizes> [options]
+imagepro convert <source> --format <target_format> [options]
 ```
 
-#### 4.3.2 Required Parameters
-- `--width <sizes>` OR `--height <sizes>` (mutually exclusive)
-  - Comma-separated list of integers
-  - Example: `--width 300,600,900,1200`
-- `--input <filepath>`
-  - Path to source image file
+#### 4.4.2 Required Parameters
 
-#### 4.3.3 Optional Parameters
-- `--quality <1-100>` (default: 90)
-- `--output <directory>` (default: `./resized/`)
-- `--help` / `-h` - Display usage information
-- `--version` / `-v` - Display version number
+- **`imagepro info`**
+  - `<file>`: path to source image file (positional, required).
 
-#### 4.3.4 Usage Examples
+- **`imagepro resize`**
+  - `--width <sizes>` **OR** `--height <sizes>` (mutually exclusive).
+    - Comma-separated list of integers.
+    - Example: `--width 300,600,900,1200`.
+  - `<file>`: path to source image file (positional, required).
+
+- **`imagepro convert`**
+  - `<source>`: path to source image file (positional, required).
+  - `--format <target_format>`: desired output format (e.g., `jpeg`, `png`, `webp`).
+
+#### 4.4.3 Optional Parameters
+
+- `--quality <1-100>` (default: 90) – for JPEG output (resize/convert).
+- `--output <directory>` (default: `./resized/` for resize) – output directory.
+- `--json` (info) – output metadata as JSON.
+- `--short` (info) – output a single CSV line of key fields.
+- `--exif` / `--exif-all` (info) – include curated or full EXIF metadata.
+- `--help` / `-h` – display usage information.
+- `--version` / `-v` – display version number.
+
+#### 4.4.4 Usage Examples
 ```bash
+# Inspect image information for a single file (human-readable)
+imagepro info photo.jpg
+
+# Generate CSV of image metadata for all JPEGs in a directory
+for img in *.jpg; do
+  imagepro info "$img" --short >> info.csv
+done
+
 # Basic usage - resize to multiple widths
-scale_image --width 300,600,900,1200 --input photo.jpg
+imagepro resize photo.jpg --width 300,600,900,1200
 
-# Custom quality
-scale_image --width 300,600 --input photo.jpg --quality 85
-
-# Custom output directory
-scale_image --width 300,600 --input photo.jpg --output ~/web/images/
+# Custom quality and output directory
+imagepro resize photo.jpg --width 300,600 --quality 85 --output ~/web/images/
 
 # Resize by height instead of width
-scale_image --height 400,800 --input banner.jpg
+imagepro resize banner.jpg --height 400,800
 
-# Batch processing via shell loop
+# Batch processing via shell loop for resizing
 for img in *.jpg; do
-  scale_image --width 300,600,900 --input "$img"
+  imagepro resize "$img" --width 300,600,900
 done
 
-# Process with absolute paths
-find /photos -name "*.jpg" | while read img; do
-  scale_image --width 300,600 --input "$img" --output /web/resized/
-done
+# Convert image to PNG
+imagepro convert photo.jpg --format png
+
+# Convert and organize outputs in a specific directory
+imagepro convert photo.jpg --format webp --output ./converted/
 ```
 
+### 4.5 Error Handling
+
+#### 4.5.1 Input Validation Errors
+- **Common (all commands):**
+  - Missing required parameters → exit with error message and usage hint.
+  - Invalid file path → `Error: File not found: <path>`.
+- **`imagepro info` / `imagepro convert`:**
+  - Unsupported or unreadable image format → `Error: Unsupported or unreadable image format: <path>`.
+- **`imagepro resize`:**
+  - Unsupported format (non-JPEG input) → `Error: Unsupported format. This version of resize supports JPEG only.`
+  - Invalid quality value → `Error: Quality must be between 1-100`.
+  - Both width and height specified → `Error: Cannot specify both --width and --height`.
+
+#### 4.5.2 Processing Errors
+- Corrupt image file → `Error: Cannot read image: <file>`.
+- Permission denied → `Error: Cannot write to output directory: <path>`.
+- Disk space issues → `Error: Insufficient disk space`.
+- All sizes skipped (upscaling) in `resize` → warning, exit successfully with message.
+
+#### 4.5.3 Error Behavior
+- Exit with non-zero status code on errors.
+- Print errors to stderr.
+- Print normal output to stdout.
+- Current design processes a single image per invocation; multi-file continuation semantics are out of scope for this version.
+
 ---
 
-### 4.4 Error Handling
+### 4.6 Output & Feedback
 
-#### 4.4.1 Input Validation Errors
-- Missing required parameters → Exit with error message and usage hint
-- Invalid file path → "Error: File not found: <path>"
-- Unsupported format → "Error: Unsupported format. Version 1.0 supports JPEG only."
-- Invalid quality value → "Error: Quality must be between 1-100"
-- Both width and height specified → "Error: Cannot specify both --width and --height"
+#### 4.6.1 Standard Output
+- Summary of operations performed.
+- For `resize` and `convert`: list of created files with dimensions and file sizes.
+- For `info`: summary of image metadata (dimensions, orientation, aspect ratio, EXIF summary).
+- Warnings for skipped sizes or other non-fatal issues.
 
-#### 4.4.2 Processing Errors
-- Corrupt image file → "Error: Cannot read image: <file>"
-- Permission denied → "Error: Cannot write to output directory: <path>"
-- Disk space issues → "Error: Insufficient disk space"
-- All sizes skipped (upscaling) → Warning, exit successfully with message
-
-#### 4.4.3 Error Behavior
-- Exit with non-zero status code on errors
-- Print errors to stderr
-- Print normal output to stdout
-- Continue processing is NOT applicable (single file mode in v1.0)
-
----
-
-### 4.5 Output & Feedback
-
-#### 4.5.1 Standard Output
-- Summary of operations performed
-- List of created files with dimensions and file sizes
-- Warnings for skipped sizes
-
-#### 4.5.2 Example Output
+#### 4.6.2 Example Output (Resize)
 ```
 Processing: photo.jpg (2400x1600)
 Output directory: ./resized/
@@ -222,14 +271,14 @@ Output directory: ./resized/
 Successfully created 4 images from photo.jpg
 ```
 
-#### 4.5.3 Verbose Mode (Future)
-- `--verbose` flag for detailed processing information
-- Show processing time per image
-- Display compression ratios
+#### 4.6.3 Verbose Mode (Future)
+- `--verbose` flag for detailed processing information.
+- Show processing time per image.
+- Display compression ratios.
 
-#### 4.5.4 Quiet Mode (Future)
-- `--quiet` flag to suppress all output except errors
-- Useful for scripting and automation
+#### 4.6.4 Quiet Mode (Future)
+- `--quiet` flag to suppress all output except errors.
+- Useful for scripting and automation.
 
 ---
 
@@ -260,6 +309,21 @@ Successfully created 4 images from photo.jpg
 - Unit tests for core functions
 - Integration tests for CLI interface
 - Semantic versioning
+
+### 5.6 Testing & Test-Driven Development (TDD)
+- **Test framework:** Use `pytest` as the primary test runner for unit, integration, and regression tests.
+- **Unit tests:**
+  - Cover core logic such as size parsing, JPEG validation, aspect ratio calculation, orientation classification, and EXIF extraction.
+  - Verify behavior of helper functions used by `imagepro info`, `imagepro resize`, and `imagepro convert`.
+- **CLI integration tests:**
+  - Invoke subcommands (`info`, `resize`, `convert`) via the command line within tests.
+  - Assert on exit codes and key parts of stdout/stderr for success and error scenarios.
+- **TDD workflow:**
+  - For new features and significant changes, write failing tests first to capture the desired behavior.
+  - Implement or modify code until tests pass, then refactor while keeping the test suite green.
+  - Add regression tests for any reported bugs before fixing them.
+- **Coverage expectations:**
+  - Maintain high coverage (e.g., >80% of core modules) with particular focus on edge cases around file handling, EXIF metadata, and aspect ratio classification.
 
 ---
 
