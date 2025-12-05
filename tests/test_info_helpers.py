@@ -1,0 +1,323 @@
+"""Unit tests for imagepro info helper functions."""
+
+import pytest
+from pathlib import Path
+import math
+
+# Import the helper functions we'll be testing (these don't exist yet - TDD!)
+try:
+    from imagepro import (
+        calculate_aspect_ratio,
+        classify_orientation,
+        match_common_ratio,
+        get_image_info,
+        extract_exif_data,
+        format_exif_curated,
+    )
+except ImportError:
+    # These functions don't exist yet - we're doing TDD
+    calculate_aspect_ratio = None
+    classify_orientation = None
+    match_common_ratio = None
+    get_image_info = None
+    extract_exif_data = None
+    format_exif_curated = None
+
+
+class TestAspectRatioCalculation:
+    """Test aspect ratio calculation using GCD for reduction."""
+
+    def test_calculate_aspect_ratio_square(self):
+        """Test 1:1 square aspect ratio."""
+        assert calculate_aspect_ratio is not None, "calculate_aspect_ratio not implemented"
+        ratio = calculate_aspect_ratio(1000, 1000)
+        assert ratio == "1:1"
+
+    def test_calculate_aspect_ratio_4_3(self):
+        """Test 4:3 aspect ratio."""
+        assert calculate_aspect_ratio is not None
+        ratio = calculate_aspect_ratio(1200, 900)
+        assert ratio == "4:3"
+
+    def test_calculate_aspect_ratio_16_9(self):
+        """Test 16:9 widescreen aspect ratio."""
+        assert calculate_aspect_ratio is not None
+        ratio = calculate_aspect_ratio(1920, 1080)
+        assert ratio == "16:9"
+
+    def test_calculate_aspect_ratio_3_2(self):
+        """Test 3:2 aspect ratio."""
+        assert calculate_aspect_ratio is not None
+        ratio = calculate_aspect_ratio(1500, 1000)
+        assert ratio == "3:2"
+
+    def test_calculate_aspect_ratio_9_16_portrait(self):
+        """Test 9:16 portrait aspect ratio."""
+        assert calculate_aspect_ratio is not None
+        ratio = calculate_aspect_ratio(1080, 1920)
+        assert ratio == "9:16"
+
+    def test_calculate_aspect_ratio_4_5_portrait(self):
+        """Test 4:5 portrait aspect ratio."""
+        assert calculate_aspect_ratio is not None
+        ratio = calculate_aspect_ratio(1080, 1350)
+        assert ratio == "4:5"
+
+    def test_calculate_aspect_ratio_5_4(self):
+        """Test 5:4 aspect ratio."""
+        assert calculate_aspect_ratio is not None
+        ratio = calculate_aspect_ratio(1250, 1000)
+        assert ratio == "5:4"
+
+    def test_calculate_aspect_ratio_instagram_1_91(self):
+        """Test 1.91:1 Instagram landscape ratio (191:100)."""
+        assert calculate_aspect_ratio is not None
+        ratio = calculate_aspect_ratio(1910, 1000)
+        assert ratio == "191:100"
+
+    def test_calculate_aspect_ratio_reduces_properly(self):
+        """Test that ratios are reduced using GCD."""
+        assert calculate_aspect_ratio is not None
+        # 800x600 should reduce to 4:3
+        ratio = calculate_aspect_ratio(800, 600)
+        assert ratio == "4:3"
+
+    def test_calculate_aspect_ratio_odd_dimensions(self):
+        """Test with non-standard dimensions."""
+        assert calculate_aspect_ratio is not None
+        ratio = calculate_aspect_ratio(1234, 567)
+        # GCD of 1234 and 567 is 1, so ratio is 1234:567
+        assert ratio == "1234:567"
+
+    def test_calculate_aspect_ratio_prime_dimensions(self):
+        """Test with prime number dimensions."""
+        assert calculate_aspect_ratio is not None
+        ratio = calculate_aspect_ratio(1920, 1081)
+        # These are coprime, so ratio should be 1920:1081
+        assert ratio == "1920:1081"
+
+
+class TestOrientationClassification:
+    """Test orientation classification (portrait, landscape, square)."""
+
+    def test_classify_square_orientation(self):
+        """Test square images are classified as 'square'."""
+        assert classify_orientation is not None, "classify_orientation not implemented"
+        assert classify_orientation(1000, 1000) == "square"
+        assert classify_orientation(500, 500) == "square"
+        assert classify_orientation(2000, 2000) == "square"
+
+    def test_classify_landscape_orientation(self):
+        """Test landscape images (width > height)."""
+        assert classify_orientation is not None
+        assert classify_orientation(1920, 1080) == "landscape"
+        assert classify_orientation(1600, 900) == "landscape"
+        assert classify_orientation(1000, 999) == "landscape"
+
+    def test_classify_portrait_orientation(self):
+        """Test portrait images (height > width)."""
+        assert classify_orientation is not None
+        assert classify_orientation(1080, 1920) == "portrait"
+        assert classify_orientation(900, 1600) == "portrait"
+        assert classify_orientation(999, 1000) == "portrait"
+
+    def test_classify_orientation_with_exif_rotation(self):
+        """Test that orientation considers EXIF rotation."""
+        # If EXIF orientation is provided, dimensions should already be corrected
+        # This test ensures the classification works correctly
+        assert classify_orientation is not None
+        # Image that appears landscape but is portrait after EXIF rotation
+        assert classify_orientation(1080, 1920) == "portrait"
+
+
+class TestCommonRatioMatching:
+    """Test matching calculated ratios against common aspect ratios."""
+
+    def test_match_common_ratio_1_1(self):
+        """Test matching 1:1 square ratio."""
+        assert match_common_ratio is not None, "match_common_ratio not implemented"
+        assert match_common_ratio("1:1") == "1:1"
+
+    def test_match_common_ratio_4_3(self):
+        """Test matching 4:3 ratio."""
+        assert match_common_ratio is not None
+        assert match_common_ratio("4:3") == "4:3"
+
+    def test_match_common_ratio_3_2(self):
+        """Test matching 3:2 ratio."""
+        assert match_common_ratio is not None
+        assert match_common_ratio("3:2") == "3:2"
+
+    def test_match_common_ratio_16_9(self):
+        """Test matching 16:9 ratio."""
+        assert match_common_ratio is not None
+        assert match_common_ratio("16:9") == "16:9"
+
+    def test_match_common_ratio_9_16(self):
+        """Test matching 9:16 portrait ratio."""
+        assert match_common_ratio is not None
+        assert match_common_ratio("9:16") == "9:16"
+
+    def test_match_common_ratio_4_5(self):
+        """Test matching 4:5 portrait ratio."""
+        assert match_common_ratio is not None
+        assert match_common_ratio("4:5") == "4:5"
+
+    def test_match_common_ratio_5_4(self):
+        """Test matching 5:4 ratio."""
+        assert match_common_ratio is not None
+        assert match_common_ratio("5:4") == "5:4"
+
+    def test_match_common_ratio_instagram_191_100(self):
+        """Test matching Instagram 1.91:1 ratio (191:100)."""
+        assert match_common_ratio is not None
+        assert match_common_ratio("191:100") == "1.91:1"
+
+    def test_match_common_ratio_none_for_uncommon(self):
+        """Test that uncommon ratios return 'none'."""
+        assert match_common_ratio is not None
+        assert match_common_ratio("1234:567") == "none"
+        assert match_common_ratio("7:5") == "none"
+        assert match_common_ratio("1920:1081") == "none"
+
+    def test_match_common_ratio_portrait_variants(self):
+        """Test portrait variants of common ratios."""
+        assert match_common_ratio is not None
+        # 3:4 is portrait version of 4:3
+        assert match_common_ratio("3:4") == "3:4"
+        # 2:3 is portrait version of 3:2
+        assert match_common_ratio("2:3") == "2:3"
+
+
+class TestExifExtraction:
+    """Test EXIF metadata extraction."""
+
+    def test_extract_exif_data_with_full_exif(self, sample_image_with_exif):
+        """Test extracting EXIF from an image with full EXIF data."""
+        assert extract_exif_data is not None, "extract_exif_data not implemented"
+        exif = extract_exif_data(sample_image_with_exif)
+
+        assert exif is not None
+        assert isinstance(exif, dict)
+        # Should contain key EXIF fields
+        assert 'DateTimeOriginal' in exif or 'DateTime' in exif
+        assert 'Make' in exif
+        assert 'Model' in exif
+
+    def test_extract_exif_data_no_exif(self, sample_image_no_exif):
+        """Test extracting EXIF from an image without EXIF data."""
+        assert extract_exif_data is not None
+        exif = extract_exif_data(sample_image_no_exif)
+
+        # Should return None or empty dict
+        assert exif is None or exif == {}
+
+    def test_extract_exif_curated_fields(self, sample_image_with_exif):
+        """Test that curated EXIF fields are extracted."""
+        assert extract_exif_data is not None
+        exif = extract_exif_data(sample_image_with_exif)
+
+        if exif:
+            # Check for curated fields as specified in PRD
+            expected_fields = ['DateTimeOriginal', 'DateTime', 'Make', 'Model',
+                             'Orientation', 'XResolution', 'YResolution', 'ResolutionUnit']
+
+            # At least some of these should be present
+            found_fields = [field for field in expected_fields if field in exif]
+            assert len(found_fields) > 0
+
+    def test_format_exif_curated(self, sample_image_with_exif):
+        """Test formatting curated EXIF subset."""
+        assert format_exif_curated is not None, "format_exif_curated not implemented"
+        assert extract_exif_data is not None
+
+        exif = extract_exif_data(sample_image_with_exif)
+        if exif:
+            formatted = format_exif_curated(exif)
+
+            assert isinstance(formatted, dict)
+            # Should only contain curated fields
+            curated_fields = {'date_taken', 'camera_make', 'camera_model',
+                            'orientation', 'dpi_x', 'dpi_y', 'resolution_unit'}
+            assert all(key in curated_fields for key in formatted.keys())
+
+
+class TestGetImageInfo:
+    """Test the main get_image_info function."""
+
+    def test_get_image_info_basic_square(self, sample_square_image):
+        """Test getting info for a square image."""
+        assert get_image_info is not None, "get_image_info not implemented"
+        info = get_image_info(sample_square_image)
+
+        assert info['width'] == 1000
+        assert info['height'] == 1000
+        assert info['orientation'] == 'square'
+        assert info['ratio_raw'] == '1:1'
+        assert info['common_ratio'] == '1:1'
+        assert 'filename' in info
+        assert 'size_kb' in info
+
+    def test_get_image_info_landscape(self, sample_landscape_image):
+        """Test getting info for a landscape image."""
+        assert get_image_info is not None
+        info = get_image_info(sample_landscape_image)
+
+        assert info['width'] == 1920
+        assert info['height'] == 1080
+        assert info['orientation'] == 'landscape'
+        assert info['ratio_raw'] == '16:9'
+        assert info['common_ratio'] == '16:9'
+
+    def test_get_image_info_portrait(self, sample_portrait_image):
+        """Test getting info for a portrait image."""
+        assert get_image_info is not None
+        info = get_image_info(sample_portrait_image)
+
+        assert info['width'] == 1080
+        assert info['height'] == 1920
+        assert info['orientation'] == 'portrait'
+        assert info['ratio_raw'] == '9:16'
+        assert info['common_ratio'] == '9:16'
+
+    def test_get_image_info_with_exif(self, sample_image_with_exif):
+        """Test getting info with EXIF data."""
+        assert get_image_info is not None
+        info = get_image_info(sample_image_with_exif)
+
+        assert info['width'] == 1200
+        assert info['height'] == 900
+        assert info['has_exif'] is True
+        assert 'exif' in info
+        assert info['exif'] is not None
+
+    def test_get_image_info_no_exif(self, sample_image_no_exif):
+        """Test getting info without EXIF data."""
+        assert get_image_info is not None
+        info = get_image_info(sample_image_no_exif)
+
+        assert info['width'] == 1500
+        assert info['height'] == 1000
+        assert info['has_exif'] is False
+        assert info['exif'] is None or info['exif'] == {}
+
+    def test_get_image_info_file_metadata(self, sample_square_image):
+        """Test that file metadata is included."""
+        assert get_image_info is not None
+        info = get_image_info(sample_square_image)
+
+        assert 'filename' in info
+        assert 'path' in info
+        assert 'size_kb' in info
+        assert info['filename'] == sample_square_image.name
+        assert info['size_kb'] > 0
+
+    def test_get_image_info_png_format(self, sample_png_image):
+        """Test getting info for PNG format."""
+        assert get_image_info is not None
+        info = get_image_info(sample_png_image)
+
+        assert info['width'] == 800
+        assert info['height'] == 600
+        # PNG typically doesn't have EXIF
+        assert info['has_exif'] is False

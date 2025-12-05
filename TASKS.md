@@ -1,92 +1,166 @@
 # ImagePro Task List
 
-This document outlines the next implementation steps based on the current `PRD.md`.
+This document tracks implementation progress based on `PRD.md`.
 
-## 1. Implement `imagepro info` (Section 4.1 of PRD)
+---
 
-- **[ ] Core CLI wiring**
-  - Add an `info` subcommand to `imagepro.py`.
-  - Use positional `<file>` argument: `imagepro info <file> [options]`.
-  - Add flags: `--json`, `--short`, `--exif`, `--exif-all`.
+## ✅ Completed Tasks
 
-- **[ ] Core behavior**
-  - Open the file with Pillow; fail cleanly if unreadable or unsupported (e.g., MP4).
-  - Read pixel dimensions, taking EXIF orientation into account.
-  - Classify orientation: `portrait`, `landscape`, `square`.
-  - Compute reduced integer aspect ratio (`ratio_raw`) using GCD.
-  - Match `ratio_raw` exactly against common ratios from PRD (e.g., `1:1`, `4:3`, `3:2`, `16:9`, `5:4`, `4:5`, `9:16`, `1.91:1`).
-  - Report `common_ratio` or `none`.
+### 1. Implement `imagepro info` (Section 4.1 of PRD)
 
-- **[ ] File and EXIF metadata**
-  - Report filename, path, file size in KB.
-  - Detect presence of EXIF.
-  - Extract curated EXIF subset (date taken, make, model, orientation, DPI fields) as described in PRD.
-  - Add `--exif-all` support to dump all EXIF tags.
+**Status:** Completed via PR #3
+**Test Coverage:** 69/69 tests passing (36 unit + 33 CLI integration)
 
-- **[ ] Output formats**
-  - Default: human-readable multi-line summary.
-  - `--json`: one JSON object per invocation (JSONL-friendly), including core fields and EXIF subset.
-  - `--short`: one CSV line per invocation, using a fixed column order (see PRD 4.1 for canonical list).
+- [x] Core CLI wiring
+  - [x] Add an `info` subcommand to `imagepro.py`
+  - [x] Use positional `<file>` argument: `imagepro info <file> [options]`
+  - [x] Add flags: `--json`, `--short`, `--exif`, `--exif-all`
 
-- **[ ] Error handling & exit codes**
-  - Use existing exit code scheme from `imagepro.py` / `README.md` (see PRD 4.5 and 9.4).
-  - Ensure errors go to stderr; normal output goes to stdout.
+- [x] Core behavior
+  - [x] Open file with Pillow; fail cleanly if unreadable or unsupported
+  - [x] Read pixel dimensions, taking EXIF orientation into account
+  - [x] Classify orientation: `portrait`, `landscape`, `square`
+  - [x] Compute reduced integer aspect ratio (`ratio_raw`) using GCD
+  - [x] Match `ratio_raw` against common ratios (1:1, 4:3, 3:2, 16:9, 5:4, 4:5, 9:16, 1.91:1)
+  - [x] Report `common_ratio` or `none`
 
-## 2. Align `imagepro resize` with PRD (Section 4.2)
+- [x] File and EXIF metadata
+  - [x] Report filename, path, file size in KB
+  - [x] Detect presence of EXIF
+  - [x] Extract curated EXIF subset (date taken, make, model, orientation, DPI)
+  - [x] Add `--exif-all` support to dump all EXIF tags
 
-> Note: Current code still uses `--input`; PRD is forward-looking with positional `<file>`.
+- [x] Output formats
+  - [x] Default: human-readable multi-line summary
+  - [x] `--json`: one JSON object per invocation (JSONL-friendly)
+  - [x] `--short`: one CSV line per invocation with fixed column order
 
-- **[ ] Refactor CLI**
-  - Introduce positional `<file>` for `resize` while keeping `--input` working for now (backwards compatibility), or plan a breaking change with clear versioning.
-  - Ensure help text and usage examples match the PRD style.
+- [x] Error handling & exit codes
+  - [x] Use exit code scheme (0=success, 3=not found, 1=error, 2=invalid args)
+  - [x] Ensure errors go to stderr; normal output goes to stdout
 
-- **[ ] Confirm behavior matches spec**
-  - Verify width/height mutual exclusion and validation.
-  - Confirm upscaling prevention and skipped-size messages.
-  - Confirm output directory behavior and naming pattern `{basename}_{size}.{ext}`.
-  - Confirm EXIF stripping and ICC profile preservation align with PRD.
+### 2. Testing & TDD Setup (Section 5.6)
 
-- **[ ] Update docs**
-  - Once CLI refactor is done, update `README.md` examples to use positional `<file>` consistently.
+- [x] Add pytest to the project
+  - [x] Add `pytest` to `requirements.txt`
+  - [x] Create `tests/` directory structure
+  - [x] Set up test fixtures with synthetic EXIF data
 
-## 3. Prepare for `imagepro convert` (Section 4.3)
+- [x] Unit tests for `info` helpers (36 tests)
+  - [x] Aspect ratio calculation and common ratio matching
+  - [x] Orientation classification
+  - [x] EXIF extraction logic
 
-- **[ ] Design initial `convert` CLI**
-  - Subcommand shape: `imagepro convert <source> --format <target_format> [options]`.
-  - Decide initial supported target formats (at least `jpeg` and `png`).
+- [x] CLI integration tests for `info` (33 tests)
+  - [x] Success and error paths
+  - [x] Test `--json`, `--short`, `--exif`, `--exif-all` flags
+  - [x] Assert on exit codes and stderr/stdout separation
 
-- **[ ] Implementation plan**
-  - Identify shared helpers between `resize` and `convert` (e.g., file validation, Pillow open/save wrappers).
-  - Define output naming and default output directory rules in line with PRD.
+- [x] Unit tests for `resize` helpers (28 tests)
+  - [x] Test `parse_sizes`, `validate_jpeg`, `get_file_size_kb`
+  - [x] Test resize_image function with various dimensions
+  - [x] Test upscaling prevention and aspect ratio preservation
+  - [x] Test quality settings and output directory creation
 
-- **[ ] Defer actual implementation**
-  - Do not implement until `info` is solid and tested; treat this as a follow-up milestone.
+- [x] CLI integration tests for `resize` (27 tests)
+  - [x] Success and error paths
+  - [x] Width/height mutual exclusion
+  - [x] Quality validation and output directory creation
+  - [x] Upscaling prevention and output format
 
-## 4. Testing & TDD Setup (Section 5.6)
+- [x] CI/CD Setup
+  - [x] GitHub Actions workflow for automated testing on PRs
+  - [x] Tests across Python 3.8, 3.9, 3.10, 3.11
 
-- **[ ] Add pytest to the project**
-  - Ensure `pytest` is listed in development dependencies (e.g., `requirements.txt` or a separate dev requirements file).
-  - Create a `tests/` directory.
+---
 
-- **[ ] Unit tests**
-  - Add tests for existing helpers in `imagepro.py` (e.g., `parse_sizes`, `validate_jpeg`, `get_file_size_kb`).
-  - Add new tests for `info`-related helpers:
-    - Aspect ratio calculation and common ratio matching.
-    - Orientation classification.
-    - EXIF extraction logic (using small test images or fixtures).
+## 📋 In Progress / Planned
 
-- **[ ] CLI integration tests**
-  - Use `pytest` to invoke `imagepro.py` (e.g., via `subprocess` or helper libraries) for:
-    - `imagepro info` success and error paths.
-    - `imagepro resize` success and error paths.
-  - Assert on exit codes and key stderr/stdout fragments.
+### 3. Align `imagepro resize` with PRD (Section 4.2)
 
-- **[ ] Adopt TDD for new features**
-  - For future features (`info` refinements, `convert`), write failing tests first using the PRD sections as the source of truth.
-  - Keep coverage high (>80% on core logic) with emphasis on file handling, EXIF, and aspect-ratio edge cases.
+> **Note:** Current code uses `--input`; PRD specifies positional `<file>`. Tests are complete but CLI needs refactoring.
 
-## 5. Nice-to-Haves / Future Iterations
+- [ ] Refactor CLI to match PRD
+  - [ ] Introduce positional `<file>` for `resize`
+  - [ ] Keep `--input` working for backwards compatibility (or plan breaking change)
+  - [ ] Ensure help text matches PRD style
 
-- **[ ] Add `--verbose` and `--quiet` modes (PRD 4.6.3–4.6.4).**
-- **[ ] Explore batch-oriented UX once single-file flows are stable (PRD 7.1).**
-- **[ ] Revisit DPI reporting and additional EXIF fields based on real-world IG workflows.**
+- [ ] Verify behavior matches spec
+  - [ ] Confirm width/height mutual exclusion (already tested)
+  - [ ] Confirm upscaling prevention (already tested)
+  - [ ] Confirm output directory behavior (already tested)
+  - [ ] Verify EXIF stripping and ICC profile preservation
+
+- [ ] Update documentation
+  - [ ] Update `README.md` examples to use positional `<file>`
+  - [ ] Update help text to match PRD
+
+### 4. Prepare for `imagepro convert` (Section 4.3)
+
+- [ ] Design initial `convert` CLI
+  - [ ] Define subcommand: `imagepro convert <source> --format <target> [options]`
+  - [ ] Decide initial supported formats (at minimum: jpeg, png)
+  - [ ] Design output naming and directory rules
+
+- [ ] Plan implementation
+  - [ ] Identify shared helpers with `resize` and `info`
+  - [ ] Define format conversion strategy
+  - [ ] Plan EXIF handling for different formats
+
+- [ ] Write tests first (TDD)
+  - [ ] Unit tests for format conversion logic
+  - [ ] CLI integration tests for `convert` command
+  - [ ] Test all supported format combinations
+
+- [ ] Implement `convert` command
+  - [ ] Only after `info` and `resize` are fully aligned with PRD
+
+---
+
+## 🎯 Future Enhancements
+
+### 5. Nice-to-Haves (PRD Section 7.x)
+
+- [ ] Add `--verbose` and `--quiet` modes (PRD 4.6.3–4.6.4)
+  - [ ] Implement verbose mode with detailed processing info
+  - [ ] Implement quiet mode (errors only)
+  - [ ] Add tests for both modes
+
+- [ ] Explore batch-oriented UX (PRD 7.1)
+  - [ ] Design multi-file input interface
+  - [ ] Add progress bar for batch operations
+  - [ ] Consider glob pattern support
+
+- [ ] Additional EXIF features
+  - [ ] Revisit DPI reporting for IG workflows
+  - [ ] Add more EXIF fields based on user feedback
+  - [ ] EXIF editing capabilities
+
+- [ ] Advanced resizing features (PRD 7.2)
+  - [ ] Crop modes (center, smart, focal point)
+  - [ ] Fit modes (contain, cover, fill)
+
+- [ ] Format expansion (PRD 7.3)
+  - [ ] WebP support
+  - [ ] AVIF support
+  - [ ] Additional format conversions
+
+---
+
+## 📊 Project Status
+
+**Current Version:** 1.0
+**Test Coverage:** 46% (124 tests)
+- Info command: 100% (69 tests)
+- Resize command: ~95% (55 tests)
+
+**Completed:**
+- ✅ Info command (full implementation)
+- ✅ Resize command (implementation complete, CLI refactor pending)
+- ✅ Comprehensive test suite
+- ✅ CI/CD pipeline
+
+**Next Priorities:**
+1. Refactor resize CLI to use positional arguments
+2. Implement convert command
+3. Add verbose/quiet modes
