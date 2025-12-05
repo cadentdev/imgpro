@@ -1,5 +1,10 @@
 # ImagePro
 
+[![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Tests](https://github.com/cadentdev/imagepro/actions/workflows/test.yml/badge.svg)](https://github.com/cadentdev/imagepro/actions/workflows/test.yml)
+[![Code Style](https://img.shields.io/badge/code%20style-PEP8-brightgreen.svg)](https://www.python.org/dev/peps/pep-0008/)
+
 **Cross-platform image processing tools written in Python**
 
 A command-line tool for generating multiple resolutions of images to support responsive web design workflows, specifically for static site generators like 11ty. ImagePro enables developers to create `srcset`-ready images from source files with configurable dimensions and quality settings.
@@ -11,7 +16,7 @@ A command-line tool for generating multiple resolutions of images to support res
 - **EXIF Support**: Extract and display EXIF metadata (camera, date, DPI, etc.)
 - **Multiple Output Formats**: Human-readable, JSON, or CSV for batch processing
 - **Common Aspect Ratios**: Automatic detection of standard ratios (16:9, 4:3, 1:1, Instagram 1.91:1, etc.)
-- **Format Support**: Works with any Pillow-compatible format (JPEG, PNG, HEIF, etc.)
+- **Broad Format Support**: JPEG, PNG, HEIF/HEIC, DNG (RAW), BMP, GIF, TIFF, WebP, and other Pillow-compatible formats
 
 ### Resize Command (v1.0)
 - **Multiple Resolutions**: Generate multiple image sizes from a single source
@@ -50,6 +55,7 @@ A command-line tool for generating multiple resolutions of images to support res
 ### Dependencies
 
 - **Pillow** (>=10.0.0): Python Imaging Library for image processing
+- **pillow-heif** (>=0.13.0): HEIF/HEIC format support (enables reading iPhone photos in HEIC format)
 - **pytest** (>=7.0.0): Testing framework (for development)
 
 ## Usage
@@ -82,7 +88,13 @@ python3 imagepro.py info <file> [options]
 ### Parameters
 
 **Required:**
-- `<file>`: Path to image file (supports JPEG, PNG, HEIF, and all Pillow-compatible formats)
+- `<file>`: Path to image file
+
+**Supported Formats:**
+- **Common formats**: JPEG (.jpg, .jpeg), PNG (.png)
+- **Apple formats**: HEIF/HEIC (.heic) - requires pillow-heif
+- **RAW formats**: DNG (.dng) - Adobe Digital Negative
+- **Other formats**: BMP, GIF, TIFF, WebP, and all Pillow-compatible formats
 
 **Optional:**
 - `--json`: Output as JSON (JSONL-compatible)
@@ -123,11 +135,13 @@ python3 imagepro.py info photo.jpg --json
 #### CSV Output for Batch Processing
 
 ```bash
-# Generate CSV of all images in a directory
-for img in *.jpg; do
-  python3 imagepro.py info "$img" --short >> images.csv
+# Generate CSV of all images in a directory (multiple formats)
+for img in *.{jpg,jpeg,JPG,JPEG,png,heic,HEIC}; do
+  python3 imagepro.py info "$img" --short 2>/dev/null >> images.csv || true
 done
 ```
+
+**Note:** The `2>/dev/null || true` pattern makes the loop continue even if some files can't be read, which is useful when processing mixed file types.
 
 **Output (images.csv):**
 ```
@@ -391,6 +405,30 @@ Error: Cannot specify both --width and --height
 ```
 
 ## Technical Details
+
+### Format Support
+
+ImagePro leverages Pillow (PIL) for image processing and supports a wide range of formats:
+
+**Info Command (Read Support):**
+- ✅ **JPEG** (.jpg, .jpeg, .JPG, .JPEG) - Full support including EXIF metadata
+- ✅ **PNG** (.png) - Full support
+- ✅ **HEIF/HEIC** (.heic, .HEIC) - Requires `pillow-heif` package (automatically installed)
+- ✅ **DNG (RAW)** (.dng) - Adobe Digital Negative format
+- ✅ **BMP** (.bmp) - Windows Bitmap
+- ✅ **GIF** (.gif) - Graphics Interchange Format
+- ✅ **TIFF** (.tif, .tiff) - Tagged Image File Format
+- ✅ **WebP** (.webp) - Modern web format
+- ✅ **Other formats** - Most Pillow-compatible formats
+
+**Resize Command (v1.0):**
+- ✅ **JPEG only** (.jpg, .jpeg, .JPG, .JPEG)
+- 🔜 PNG, WebP, AVIF support planned for future versions (see Roadmap)
+
+**Notes:**
+- Format detection is based on file content, not extension (e.g., a JPEG file renamed to .heic will still work)
+- HEIF/HEIC support requires the `pillow-heif` package, which is included in `requirements.txt`
+- Some formats may have limited EXIF support depending on how metadata is stored
 
 ### Image Processing
 

@@ -208,3 +208,11 @@ __marimo__/
 
 # Mac system files
 .DS_Store
+
+# ImagePro specific
+# Generated CSV files from info command
+*.csv
+
+# Test image directories
+img/
+resized/

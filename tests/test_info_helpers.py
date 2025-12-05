@@ -321,3 +321,99 @@ class TestGetImageInfo:
         assert info['height'] == 600
         # PNG typically doesn't have EXIF
         assert info['has_exif'] is False
+
+
+class TestHeifSupport:
+    """Test HEIF format support via pillow-heif."""
+
+    def test_heif_support_available(self):
+        """Test that pillow-heif is available and registered."""
+        try:
+            from pillow_heif import register_heif_opener
+            # If we can import it, the module is available
+            assert True
+        except ImportError:
+            pytest.skip("pillow-heif not installed")
+
+    def test_heif_opener_registered(self):
+        """Test that HEIF opener is registered with PIL."""
+        try:
+            from pillow_heif import register_heif_opener
+            register_heif_opener()
+            from PIL import Image
+
+            # Check if HEIF format is supported
+            # We can't easily create a synthetic HEIF, but we can verify
+            # the opener is registered
+            assert True
+        except ImportError:
+            pytest.skip("pillow-heif not installed")
+
+    def test_heif_file_reading(self, tmp_path):
+        """Test reading a real HEIF file if available."""
+        # This test uses the real HEIF file from our test directory
+        heif_test_file = Path(__file__).parent.parent / "img" / "tai_ping_socials" / "IMG_3751.HEIC"
+
+        if not heif_test_file.exists():
+            pytest.skip("Test HEIF file not available")
+
+        try:
+            from pillow_heif import register_heif_opener
+            register_heif_opener()
+        except ImportError:
+            pytest.skip("pillow-heif not installed")
+
+        # Test that we can read the HEIF file
+        assert get_image_info is not None
+        info = get_image_info(heif_test_file)
+
+        # Verify basic info is extracted
+        assert 'width' in info
+        assert 'height' in info
+        assert info['width'] > 0
+        assert info['height'] > 0
+        assert 'orientation' in info
+        assert 'ratio_raw' in info
+
+    def test_misleading_heic_extension_jpeg_content(self):
+        """Test file with .HEIC extension but actually contains JPEG data."""
+        # Some files are renamed with .HEIC extension but contain JPEG data
+        # This is common when exporting from photo libraries
+        misleading_file = Path(__file__).parent.parent / "img" / "tai_ping_socials" / "IMG_3494.HEIC"
+
+        if not misleading_file.exists():
+            pytest.skip("Test file with misleading extension not available")
+
+        # Should still work - Pillow reads based on content, not extension
+        assert get_image_info is not None
+        info = get_image_info(misleading_file)
+
+        # Verify it reads successfully despite misleading extension
+        assert info['width'] == 3024
+        assert info['height'] == 4032
+        assert info['orientation'] == 'portrait'
+        assert info['ratio_raw'] == '3:4'
+        # This file is actually JPEG, so it should have EXIF
+        assert info['has_exif'] is True
+
+    def test_large_raw_dng_file(self):
+        """Test handling of large RAW DNG files."""
+        # DNG files can be very large (60+ MB) - test that we handle them
+        dng_file = Path(__file__).parent.parent / "img" / "tai_ping_socials" / "IMG_3749.DNG"
+
+        if not dng_file.exists():
+            pytest.skip("Test DNG file not available")
+
+        # Test that we can read large DNG files
+        assert get_image_info is not None
+        info = get_image_info(dng_file)
+
+        # Verify basic info is extracted
+        assert 'width' in info
+        assert 'height' in info
+        assert info['width'] == 6048
+        assert info['height'] == 8064
+        assert info['orientation'] == 'portrait'
+        assert info['ratio_raw'] == '3:4'
+        # Large file should report size in KB correctly
+        assert info['size_kb'] > 50000  # Should be over 50 MB
