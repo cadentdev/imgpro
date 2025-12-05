@@ -318,7 +318,29 @@ python -m pytest tests/ --cov=imagepro --cov-report=term-missing
 - GitHub Actions automatically runs tests on all PRs
 - Tests across Python 3.8, 3.9, 3.10, 3.11
 
-See `PRD.md` (Section 5.6) and `TASKS.md` for the complete testing roadmap.
+### Test-Driven Development
+
+This project follows TDD practices for all new features:
+
+**Workflow:**
+1. **Write tests first** - Define expected behavior through tests before implementation
+2. **Watch them fail** - Confirm tests fail as expected (red)
+3. **Implement feature** - Write minimal code to make tests pass (green)
+4. **Refactor** - Improve code while keeping tests green
+5. **Maintain coverage** - Keep coverage high (>80% on core logic)
+
+**For new features:**
+- Use PRD sections as source of truth for test requirements
+- Create both unit tests (helper functions) and integration tests (CLI)
+- Test edge cases: file handling, error conditions, boundary values
+- Focus on EXIF handling, aspect ratios, and format conversions
+
+**Example:** The `info` command was developed using TDD:
+- First: Wrote 69 tests covering all requirements (all failing)
+- Then: Implemented features until all tests passed
+- Result: 100% coverage with confidence in correctness
+
+See `TASKS.md` for current development priorities and `tests/` for examples.
 
 ## Output File Naming
 
@@ -407,10 +429,23 @@ See [PRD.md](PRD.md) for the complete product requirements and future enhancemen
 
 ```
 imagepro/
-├── imagepro.py         # Main CLI tool
-├── requirements.txt    # Python dependencies
-├── PRD.md             # Product Requirements Document
-└── README.md          # This file
+├── .github/
+│   └── workflows/
+│       └── test.yml          # CI/CD pipeline
+├── devlog/                   # Development logs and PR descriptions
+├── tests/
+│   ├── __init__.py
+│   ├── conftest.py          # Pytest configuration and fixtures
+│   ├── fixtures.py          # Test image generation with synthetic EXIF
+│   ├── test_info_cli.py     # Info command integration tests
+│   ├── test_info_helpers.py # Info command unit tests
+│   ├── test_resize_cli.py   # Resize command integration tests
+│   └── test_resize_helpers.py # Resize command unit tests
+├── imagepro.py              # Main CLI tool
+├── requirements.txt         # Python dependencies
+├── PRD.md                   # Product Requirements Document
+├── TASKS.md                 # Task tracking and project status
+└── README.md                # This file
 ```
 
 ### Adding New Commands
@@ -436,7 +471,56 @@ convert_parser.set_defaults(func=cmd_convert)
 
 ## Contributing
 
-This is currently a development project. For issues or feature requests, please refer to the [Product Requirements Document](PRD.md).
+Contributions are welcome! This project follows Test-Driven Development practices.
+
+### Development Workflow
+
+1. **Fork and clone** the repository
+2. **Install dependencies**: `pip install -r requirements.txt`
+3. **Create a branch** for your feature: `git checkout -b feature/your-feature`
+4. **Write tests first** (TDD approach):
+   - Unit tests in `tests/test_*_helpers.py`
+   - Integration tests in `tests/test_*_cli.py`
+   - Ensure tests fail before implementation
+5. **Implement the feature** until tests pass
+6. **Run the full test suite**: `python -m pytest tests/ -v`
+7. **Check coverage**: `python -m pytest tests/ --cov=imagepro --cov-report=term-missing`
+8. **Commit and push** with clear commit messages
+9. **Open a Pull Request** - CI will automatically run all tests
+
+### Coding Standards
+
+- Follow existing code style and structure
+- Write descriptive docstrings for functions
+- Use type hints where helpful
+- Keep functions focused and testable
+- Error messages should be clear and actionable
+- Test coverage should remain >80% on core logic
+
+### Running Tests
+
+```bash
+# Run all tests
+python -m pytest tests/ -v
+
+# Run specific test file
+python -m pytest tests/test_info_cli.py -v
+
+# Run with coverage
+python -m pytest tests/ --cov=imagepro --cov-report=html
+
+# Run specific test
+python -m pytest tests/test_info_cli.py::TestInfoCommandBasics::test_info_command_exists -v
+```
+
+### Project Priorities
+
+See [TASKS.md](TASKS.md) for current priorities and status. Next priorities include:
+1. Refactor resize CLI to use positional arguments (matching PRD)
+2. Implement `convert` command for format conversion
+3. Add `--verbose` and `--quiet` modes
+
+For design decisions and feature requirements, refer to [PRD.md](PRD.md).
 
 ## License
 
