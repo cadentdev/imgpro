@@ -309,8 +309,10 @@ python -m pytest tests/ --cov=imagepro --cov-report=term-missing
 - **Info command:** 100% coverage (69 tests)
   - 36 unit tests for helper functions
   - 33 CLI integration tests
-- **Resize command:** Tests planned (see TASKS.md)
-- **Overall project:** 30% coverage (info fully tested, resize pending)
+- **Resize command:** ~95% coverage (55 tests)
+  - 28 unit tests for helper functions and shared utilities
+  - 27 CLI integration tests
+- **Overall project:** 46% coverage (124 total tests)
 
 **CI/CD:**
 - GitHub Actions automatically runs tests on all PRs

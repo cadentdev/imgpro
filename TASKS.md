@@ -87,16 +87,18 @@ This document outlines the next implementation steps based on the current `PRD.m
   - GitHub Actions workflow for automated testing on PRs
   - Tests across Python 3.8, 3.9, 3.10, 3.11
 
-- **[ ] Unit tests for `resize` helpers (TODO - add later)**
+- **[x] Unit tests for `resize` helpers** ✅ (28 tests)
   - Add tests for existing helpers in `imagepro.py` (e.g., `parse_sizes`, `validate_jpeg`, `get_file_size_kb`).
   - Test edge cases for resize logic (upscaling prevention, aspect ratio preservation).
+  - Test resize_image function with various dimensions and quality settings.
 
-- **[ ] CLI integration tests for `resize` (TODO - add later)**
+- **[x] CLI integration tests for `resize`** ✅ (27 tests)
   - Use `pytest` to invoke `imagepro.py` (e.g., via `subprocess`) for:
     - `imagepro resize` success and error paths.
     - Test width/height mutual exclusion.
     - Test quality validation and output directory creation.
   - Assert on exit codes and key stderr/stdout fragments.
+  - Test upscaling prevention and output format.
 
 - **[ ] Adopt TDD for new features**
   - For future features (`info` refinements, `convert`), write failing tests first using the PRD sections as the source of truth.
