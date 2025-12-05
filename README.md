@@ -4,16 +4,23 @@
 
 A command-line tool for generating multiple resolutions of images to support responsive web design workflows, specifically for static site generators like 11ty. ImagePro enables developers to create `srcset`-ready images from source files with configurable dimensions and quality settings.
 
-## Features (v1.0)
+## Features
 
-- **Resize Command**: Generate multiple image sizes from a single source
+### Info Command (v1.0)
+- **Image Metadata Inspection**: View dimensions, orientation, aspect ratio, and file size
+- **EXIF Support**: Extract and display EXIF metadata (camera, date, DPI, etc.)
+- **Multiple Output Formats**: Human-readable, JSON, or CSV for batch processing
+- **Common Aspect Ratios**: Automatic detection of standard ratios (16:9, 4:3, 1:1, Instagram 1.91:1, etc.)
+- **Format Support**: Works with any Pillow-compatible format (JPEG, PNG, HEIF, etc.)
+
+### Resize Command (v1.0)
+- **Multiple Resolutions**: Generate multiple image sizes from a single source
 - **Width/Height Based**: Resize by width or height while maintaining aspect ratio
 - **Smart Upscaling Prevention**: Automatically skips sizes larger than the original
 - **High-Quality Resampling**: Uses Lanczos algorithm for best quality
 - **JPEG Optimization**: Control quality (1-100) with EXIF stripping by default
 - **Organized Output**: Configurable output directory with clean naming (`photo_300.jpg`)
 - **Format Support**: JPEG only in v1.0 (PNG, WebP, AVIF planned for future versions)
-- **Subcommand Architecture**: Ready for future commands like `convert`, `crop`, etc.
 
 ## Installation
 
@@ -43,28 +50,132 @@ A command-line tool for generating multiple resolutions of images to support res
 ### Dependencies
 
 - **Pillow** (>=10.0.0): Python Imaging Library for image processing
+- **pytest** (>=7.0.0): Testing framework (for development)
 
 ## Usage
 
-In v1.0 the only implemented subcommand is `resize`. Planned commands like `info` (for image metadata/aspect ratios) and `convert` (for format conversion) are described in the PRD and will be added in future versions.
+ImagePro provides two main commands: `info` for inspecting image metadata and `resize` for generating multiple image sizes.
 
 ### Basic Syntax
+
+```bash
+# Info command - inspect image metadata
+python3 imagepro.py info <file> [options]
+
+# Resize command - generate multiple sizes
+python3 imagepro.py resize --width <sizes> --input <file> [options]
+python3 imagepro.py resize --height <sizes> --input <file> [options]
+```
+
+---
+
+## Info Command
+
+Inspect image files to view dimensions, orientation, aspect ratio, and EXIF metadata.
+
+### Usage
+
+```bash
+python3 imagepro.py info <file> [options]
+```
+
+### Parameters
+
+**Required:**
+- `<file>`: Path to image file (supports JPEG, PNG, HEIF, and all Pillow-compatible formats)
+
+**Optional:**
+- `--json`: Output as JSON (JSONL-compatible)
+- `--short`: Output as CSV line (for batch processing)
+- `--exif`: Display curated EXIF metadata
+- `--exif-all`: Display all EXIF tags
+
+### Examples
+
+#### Basic Image Info
+
+```bash
+python3 imagepro.py info photo.jpg
+```
+
+**Output:**
+```
+File: photo.jpg
+Path: /home/user/photos/photo.jpg
+Dimensions: 1920x1080
+Orientation: landscape
+Aspect Ratio: 16:9 (16:9)
+File Size: 245.32 KB
+EXIF Present: Yes
+```
+
+#### JSON Output
+
+```bash
+python3 imagepro.py info photo.jpg --json
+```
+
+**Output:**
+```json
+{"filename": "photo.jpg", "path": "/home/user/photos/photo.jpg", "width": 1920, "height": 1080, "orientation": "landscape", "ratio_raw": "16:9", "common_ratio": "16:9", "size_kb": 245.32, "has_exif": true, "creation_date": "2024:11:12 14:30:00", "exif": {"date_taken": "2024:11:12 14:30:00", "camera_make": "Canon", "camera_model": "Canon EOS 5D"}}
+```
+
+#### CSV Output for Batch Processing
+
+```bash
+# Generate CSV of all images in a directory
+for img in *.jpg; do
+  python3 imagepro.py info "$img" --short >> images.csv
+done
+```
+
+**Output (images.csv):**
+```
+photo1.jpg,1920,1080,landscape,16:9,16:9,245.32,2024:11:12 14:30:00
+photo2.jpg,1080,1920,portrait,9:16,9:16,189.45,2024:11:12 15:00:00
+photo3.jpg,1000,1000,square,1:1,1:1,156.78,
+```
+
+#### View EXIF Metadata
+
+```bash
+python3 imagepro.py info photo.jpg --exif
+```
+
+**Additional output:**
+```
+EXIF Data:
+  Date Taken: 2024:11:12 14:30:00
+  Camera Make: Canon
+  Camera Model: Canon EOS 5D Mark IV
+  Orientation: 1
+  Dpi X: 72.0
+  Dpi Y: 72.0
+```
+
+---
+
+## Resize Command
+
+Generate multiple image sizes from a single source while maintaining aspect ratio.
+
+### Usage
 
 ```bash
 python3 imagepro.py resize --width <sizes> --input <file> [options]
 python3 imagepro.py resize --height <sizes> --input <file> [options]
 ```
 
-### Required Parameters
+### Parameters
 
+**Required:**
 - `--width <sizes>` OR `--height <sizes>` (mutually exclusive)
   - Comma-separated list of integers
   - Example: `--width 300,600,900,1200`
 - `--input <filepath>`
   - Path to source image file (JPEG only in v1.0)
 
-### Optional Parameters
-
+**Optional:**
 - `--quality <1-100>` (default: 90)
   - JPEG compression quality
 - `--output <directory>` (default: `./resized/`)
@@ -180,12 +291,32 @@ done
 - ✓ EXIF metadata stripping
 - ✓ Aspect ratio preservation
 
-### Automated Testing (planned)
+### Automated Testing
 
-- A `pytest`-based test suite is planned to cover:
-  - Core helpers (size parsing, validation, aspect ratio/orientation logic, EXIF handling).
-  - CLI integration tests for subcommands (`resize` now, `info`/`convert` in future).
-- See `PRD.md` (Section 5.6) and `TASKS.md` for the testing and TDD roadmap.
+The project includes a comprehensive `pytest`-based test suite:
+
+**Run all tests:**
+```bash
+python -m pytest tests/ -v
+```
+
+**Run with coverage report:**
+```bash
+python -m pytest tests/ --cov=imagepro --cov-report=term-missing
+```
+
+**Test Coverage:**
+- **Info command:** 100% coverage (69 tests)
+  - 36 unit tests for helper functions
+  - 33 CLI integration tests
+- **Resize command:** Tests planned (see TASKS.md)
+- **Overall project:** 30% coverage (info fully tested, resize pending)
+
+**CI/CD:**
+- GitHub Actions automatically runs tests on all PRs
+- Tests across Python 3.8, 3.9, 3.10, 3.11
+
+See `PRD.md` (Section 5.6) and `TASKS.md` for the complete testing roadmap.
 
 ## Output File Naming
 

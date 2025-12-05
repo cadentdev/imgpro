@@ -2,14 +2,17 @@
 
 This document outlines the next implementation steps based on the current `PRD.md`.
 
-## 1. Implement `imagepro info` (Section 4.1 of PRD)
+## 1. ✅ Implement `imagepro info` (Section 4.1 of PRD) - COMPLETED
 
-- **[ ] Core CLI wiring**
+> **Status:** Completed via PR #3
+> **Test Coverage:** 69/69 tests passing (36 unit + 33 CLI integration)
+
+- **[x] Core CLI wiring**
   - Add an `info` subcommand to `imagepro.py`.
   - Use positional `<file>` argument: `imagepro info <file> [options]`.
   - Add flags: `--json`, `--short`, `--exif`, `--exif-all`.
 
-- **[ ] Core behavior**
+- **[x] Core behavior**
   - Open the file with Pillow; fail cleanly if unreadable or unsupported (e.g., MP4).
   - Read pixel dimensions, taking EXIF orientation into account.
   - Classify orientation: `portrait`, `landscape`, `square`.
@@ -17,18 +20,18 @@ This document outlines the next implementation steps based on the current `PRD.m
   - Match `ratio_raw` exactly against common ratios from PRD (e.g., `1:1`, `4:3`, `3:2`, `16:9`, `5:4`, `4:5`, `9:16`, `1.91:1`).
   - Report `common_ratio` or `none`.
 
-- **[ ] File and EXIF metadata**
+- **[x] File and EXIF metadata**
   - Report filename, path, file size in KB.
   - Detect presence of EXIF.
   - Extract curated EXIF subset (date taken, make, model, orientation, DPI fields) as described in PRD.
   - Add `--exif-all` support to dump all EXIF tags.
 
-- **[ ] Output formats**
+- **[x] Output formats**
   - Default: human-readable multi-line summary.
   - `--json`: one JSON object per invocation (JSONL-friendly), including core fields and EXIF subset.
   - `--short`: one CSV line per invocation, using a fixed column order (see PRD 4.1 for canonical list).
 
-- **[ ] Error handling & exit codes**
+- **[x] Error handling & exit codes**
   - Use existing exit code scheme from `imagepro.py` / `README.md` (see PRD 4.5 and 9.4).
   - Ensure errors go to stderr; normal output goes to stdout.
 
@@ -64,21 +67,25 @@ This document outlines the next implementation steps based on the current `PRD.m
 
 ## 4. Testing & TDD Setup (Section 5.6)
 
-- **[ ] Add pytest to the project**
+- **[x] Add pytest to the project** ✅
   - Ensure `pytest` is listed in development dependencies (e.g., `requirements.txt` or a separate dev requirements file).
   - Create a `tests/` directory.
 
-- **[ ] Unit tests for `info`-related helpers**
+- **[x] Unit tests for `info`-related helpers** ✅ (36 tests)
   - Add new tests for `info`-related helpers:
     - Aspect ratio calculation and common ratio matching.
     - Orientation classification.
     - EXIF extraction logic (using small test images or fixtures).
 
-- **[ ] CLI integration tests for `info`**
+- **[x] CLI integration tests for `info`** ✅ (33 tests)
   - Use `pytest` to invoke `imagepro.py` (e.g., via `subprocess`) for:
     - `imagepro info` success and error paths.
     - Test `--json`, `--short`, `--exif`, `--exif-all` flags.
   - Assert on exit codes and key stderr/stdout fragments.
+
+- **[x] CI/CD Setup** ✅
+  - GitHub Actions workflow for automated testing on PRs
+  - Tests across Python 3.8, 3.9, 3.10, 3.11
 
 - **[ ] Unit tests for `resize` helpers (TODO - add later)**
   - Add tests for existing helpers in `imagepro.py` (e.g., `parse_sizes`, `validate_jpeg`, `get_file_size_kb`).
