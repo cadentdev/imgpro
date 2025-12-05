@@ -68,17 +68,27 @@ This document outlines the next implementation steps based on the current `PRD.m
   - Ensure `pytest` is listed in development dependencies (e.g., `requirements.txt` or a separate dev requirements file).
   - Create a `tests/` directory.
 
-- **[ ] Unit tests**
-  - Add tests for existing helpers in `imagepro.py` (e.g., `parse_sizes`, `validate_jpeg`, `get_file_size_kb`).
+- **[ ] Unit tests for `info`-related helpers**
   - Add new tests for `info`-related helpers:
     - Aspect ratio calculation and common ratio matching.
     - Orientation classification.
     - EXIF extraction logic (using small test images or fixtures).
 
-- **[ ] CLI integration tests**
-  - Use `pytest` to invoke `imagepro.py` (e.g., via `subprocess` or helper libraries) for:
+- **[ ] CLI integration tests for `info`**
+  - Use `pytest` to invoke `imagepro.py` (e.g., via `subprocess`) for:
     - `imagepro info` success and error paths.
+    - Test `--json`, `--short`, `--exif`, `--exif-all` flags.
+  - Assert on exit codes and key stderr/stdout fragments.
+
+- **[ ] Unit tests for `resize` helpers (TODO - add later)**
+  - Add tests for existing helpers in `imagepro.py` (e.g., `parse_sizes`, `validate_jpeg`, `get_file_size_kb`).
+  - Test edge cases for resize logic (upscaling prevention, aspect ratio preservation).
+
+- **[ ] CLI integration tests for `resize` (TODO - add later)**
+  - Use `pytest` to invoke `imagepro.py` (e.g., via `subprocess`) for:
     - `imagepro resize` success and error paths.
+    - Test width/height mutual exclusion.
+    - Test quality validation and output directory creation.
   - Assert on exit codes and key stderr/stdout fragments.
 
 - **[ ] Adopt TDD for new features**
