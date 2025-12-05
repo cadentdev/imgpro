@@ -46,6 +46,8 @@ A command-line tool for generating multiple resolutions of images to support res
 
 ## Usage
 
+In v1.0 the only implemented subcommand is `resize`. Planned commands like `info` (for image metadata/aspect ratios) and `convert` (for format conversion) are described in the PRD and will be added in future versions.
+
 ### Basic Syntax
 
 ```bash
@@ -178,6 +180,13 @@ done
 - ✓ EXIF metadata stripping
 - ✓ Aspect ratio preservation
 
+### Automated Testing (planned)
+
+- A `pytest`-based test suite is planned to cover:
+  - Core helpers (size parsing, validation, aspect ratio/orientation logic, EXIF handling).
+  - CLI integration tests for subcommands (`resize` now, `info`/`convert` in future).
+- See `PRD.md` (Section 5.6) and `TASKS.md` for the testing and TDD roadmap.
+
 ## Output File Naming
 
 ImagePro uses a simple, predictable naming pattern:
@@ -250,6 +259,7 @@ See [PRD.md](PRD.md) for the complete product requirements and future enhancemen
 
 ### Planned Features
 
+- **v1.0.x**: `imagepro info` subcommand for image metadata, orientation, aspect ratio, and EXIF inspection with JSON/CSV output.
 - **v1.1**: Batch processing (multiple files, glob patterns, directories)
 - **v1.2**: Advanced resizing (crop modes, fit modes)
 - **v1.3**: Format support (PNG, WebP, AVIF, format conversion)
