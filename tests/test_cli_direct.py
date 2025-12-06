@@ -557,7 +557,7 @@ class TestMainFunction:
         assert exc_info.value.code == 0
 
         captured = capsys.readouterr()
-        assert '1.0.0' in captured.out
+        assert '1.1.0' in captured.out
 
     def test_main_version_short_flag(self, monkeypatch, capsys):
         """Test main with -v flag."""
@@ -571,7 +571,7 @@ class TestMainFunction:
         assert exc_info.value.code == 0
 
         captured = capsys.readouterr()
-        assert '1.0.0' in captured.out
+        assert '1.1.0' in captured.out
 
     def test_main_help_flag(self, monkeypatch, capsys):
         """Test main with --help flag."""
