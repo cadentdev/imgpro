@@ -21,6 +21,108 @@ except ImportError:
 
 __version__ = "1.1.0"
 
+# Supported output formats for convert command
+SUPPORTED_OUTPUT_FORMATS = {
+    'jpeg': '.jpg',
+    'jpg': '.jpg',
+    'png': '.png',
+}
+
+
+def is_supported_output_format(format_str):
+    """
+    Check if a format is supported for output conversion.
+
+    Args:
+        format_str: Format name (e.g., "jpeg", "png")
+
+    Returns:
+        bool: True if supported, False otherwise
+    """
+    return format_str.lower() in SUPPORTED_OUTPUT_FORMATS
+
+
+def get_target_extension(format_str):
+    """
+    Get the file extension for a target format.
+
+    Args:
+        format_str: Format name (e.g., "jpeg", "png")
+
+    Returns:
+        String: Extension with dot (e.g., ".jpg") or None if unsupported
+    """
+    return SUPPORTED_OUTPUT_FORMATS.get(format_str.lower())
+
+
+def convert_image(source_path, output_path, target_format, quality=90, strip_exif=False):
+    """
+    Convert an image to a different format.
+
+    Args:
+        source_path: Path to source image
+        output_path: Path for output image
+        target_format: Target format (e.g., "jpeg", "png")
+        quality: JPEG quality 1-100 (default: 90)
+        strip_exif: If True, strip EXIF metadata from output
+
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    try:
+        source_path = Path(source_path)
+        output_path = Path(output_path)
+
+        with Image.open(source_path) as img:
+            # Get EXIF data if we need to preserve it
+            exif_data = None
+            if not strip_exif:
+                try:
+                    exif_data = img.getexif()
+                except Exception:
+                    exif_data = None
+
+            # Handle color mode conversion for JPEG output
+            if target_format.lower() in ('jpeg', 'jpg'):
+                if img.mode in ('RGBA', 'LA', 'P'):
+                    # Convert with white background for transparency
+                    if img.mode == 'P':
+                        img = img.convert('RGBA')
+                    background = Image.new('RGB', img.size, (255, 255, 255))
+                    if img.mode in ('RGBA', 'LA'):
+                        # Handle alpha channel
+                        if img.mode == 'LA':
+                            img = img.convert('RGBA')
+                        background.paste(img, mask=img.split()[-1])
+                        img = background
+                    else:
+                        img = img.convert('RGB')
+                elif img.mode != 'RGB':
+                    img = img.convert('RGB')
+
+            # Prepare save arguments
+            save_kwargs = {}
+            if target_format.lower() in ('jpeg', 'jpg'):
+                save_kwargs['quality'] = quality
+                save_kwargs['format'] = 'JPEG'
+            elif target_format.lower() == 'png':
+                save_kwargs['format'] = 'PNG'
+
+            # Add EXIF if preserving
+            if exif_data and not strip_exif and target_format.lower() in ('jpeg', 'jpg'):
+                save_kwargs['exif'] = exif_data
+
+            # Ensure output directory exists
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # Save the image
+            img.save(output_path, **save_kwargs)
+
+        return True
+
+    except Exception:
+        return False
+
 
 def parse_sizes(size_str):
     """Parse comma-separated list of sizes into integers."""
@@ -721,6 +823,62 @@ def cmd_rename(args):
     print(f"Created: {output_path}")
 
 
+def cmd_convert(args):
+    """Handle the convert subcommand."""
+    input_path = Path(args.file)
+
+    # Check if file exists
+    if not input_path.exists():
+        print(f"Error: File not found: {input_path}", file=sys.stderr)
+        sys.exit(3)
+
+    # Validate format option
+    if not is_supported_output_format(args.format):
+        print(f"Error: Unsupported output format: {args.format}", file=sys.stderr)
+        print(f"Supported formats: {', '.join(sorted(set(SUPPORTED_OUTPUT_FORMATS.keys())))}",
+              file=sys.stderr)
+        sys.exit(2)
+
+    # Validate quality
+    if args.quality < 1 or args.quality > 100:
+        print(f"Error: Quality must be between 1-100, got {args.quality}", file=sys.stderr)
+        sys.exit(2)
+
+    # Try to read the image to verify it's valid
+    image_format = get_image_format(input_path)
+    if image_format is None:
+        print(f"Error: Cannot read image: {input_path}", file=sys.stderr)
+        sys.exit(4)
+
+    # Determine output path
+    output_dir = Path(args.output)
+    target_ext = get_target_extension(args.format)
+    output_filename = input_path.stem + target_ext
+    output_path = output_dir / output_filename
+
+    # Check if output file already exists
+    if output_path.exists():
+        print(f"Warning: Overwriting existing file: {output_path}", file=sys.stderr)
+
+    # Create output directory if needed
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Convert the image
+    success = convert_image(
+        input_path,
+        output_path,
+        args.format,
+        quality=args.quality,
+        strip_exif=args.strip_exif
+    )
+
+    if success:
+        print(f"Created: {output_path}")
+    else:
+        print(f"Error: Failed to convert image", file=sys.stderr)
+        sys.exit(4)
+
+
 def main():
     """Main entry point for imagepro CLI."""
     parser = argparse.ArgumentParser(
@@ -841,6 +999,45 @@ def main():
     )
 
     rename_parser.set_defaults(func=cmd_rename)
+
+    # Convert command
+    convert_parser = subparsers.add_parser(
+        'convert',
+        help='Convert images between formats',
+        description='Convert images to different formats (e.g., HEIC to JPEG)'
+    )
+
+    convert_parser.add_argument(
+        'file',
+        help='Path to source image file'
+    )
+
+    convert_parser.add_argument(
+        '--format', '-f',
+        required=True,
+        help='Target format (jpeg, jpg, png)'
+    )
+
+    convert_parser.add_argument(
+        '--output',
+        default='./converted/',
+        help='Output directory (default: ./converted/)'
+    )
+
+    convert_parser.add_argument(
+        '--quality',
+        type=int,
+        default=90,
+        help='JPEG quality 1-100 (default: 90)'
+    )
+
+    convert_parser.add_argument(
+        '--strip-exif',
+        action='store_true',
+        help='Remove EXIF metadata from output'
+    )
+
+    convert_parser.set_defaults(func=cmd_convert)
 
     # Parse arguments
     args = parser.parse_args()
