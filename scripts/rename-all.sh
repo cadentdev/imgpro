@@ -94,8 +94,10 @@ for img in "$INPUT_DIR"/*; do
     [ -f "$img" ] || continue
 
     # Skip non-image files (basic extension check)
-    case "${img,,}" in
-        *.jpg|*.jpeg|*.png|*.heic|*.heif|*.gif|*.bmp|*.tiff|*.webp)
+    # Use tr for lowercase conversion (compatible with all shells)
+    img_lower=$(echo "$img" | tr '[:upper:]' '[:lower:]')
+    case "$img_lower" in
+        *.jpg|*.jpeg|*.png|*.heic|*.heif|*.gif|*.bmp|*.tiff|*.webp|*.dng)
             ;;
         *)
             continue
