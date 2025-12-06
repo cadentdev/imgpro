@@ -112,27 +112,33 @@ The `rename` command provides two key features for organizing image files:
 
 ### 4. Implement `imagepro convert` (Section 4.3 of PRD) - Priority 2
 
-> **Status:** Not started
+> **Status:** In progress
 > **Depends on:** None
 
 The `convert` command enables format conversion, primarily HEIC→JPEG.
 
-- [ ] Write tests first (TDD)
+- [x] Core implementation complete
+  - [x] Add `convert` subparser with positional `<source>` argument
+  - [x] Implement `--format` option (required: jpeg, png)
+  - [x] Default output to `./converted/` directory
+  - [x] Preserve EXIF by default
+  - [x] Implement `--strip-exif` flag to remove metadata
+  - [x] Support `--quality` option (default: 80)
+  - [x] Handle existing output files (overwrite with warning)
+  - [x] sRGB color profile conversion (automatic)
+
+- [ ] Write tests (TDD - retroactive)
   - [ ] Unit tests for format conversion logic
   - [ ] Unit tests for EXIF preservation/stripping
+  - [ ] Unit tests for sRGB color profile conversion
   - [ ] CLI integration tests for basic conversion
   - [ ] CLI integration tests for `--strip-exif` flag
   - [ ] CLI integration tests for `--quality` option
   - [ ] Tests for output directory and naming
 
-- [ ] Implement `convert` command
-  - [ ] Add `convert` subparser with positional `<source>` argument
-  - [ ] Implement `--format` option (required: jpeg, png; future: webp)
-  - [ ] Default output to `./converted/` directory
-  - [ ] Preserve EXIF by default
-  - [ ] Implement `--strip-exif` flag to remove metadata
-  - [ ] Support `--quality` option for lossy formats
-  - [ ] Handle existing output files (overwrite with warning)
+- [ ] Enhancements
+  - [ ] Add `--no-srgb` flag to skip sRGB conversion
+  - [ ] Add WebP output format support
 
 ### 5. Create Bash Scripts in `scripts/` Directory - Priority 3
 

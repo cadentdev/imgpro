@@ -7,9 +7,11 @@ import argparse
 import sys
 from pathlib import Path
 from PIL import Image
+from PIL import ImageCms
 import os
 import json
 import math
+import io
 
 # Register HEIF opener if pillow-heif is available
 try:
@@ -55,7 +57,36 @@ def get_target_extension(format_str):
     return SUPPORTED_OUTPUT_FORMATS.get(format_str.lower())
 
 
-def convert_image(source_path, output_path, target_format, quality=90, strip_exif=False):
+def convert_to_srgb(img):
+    """
+    Convert image to sRGB color profile if it has a different profile.
+
+    Args:
+        img: PIL Image object
+
+    Returns:
+        PIL Image object in sRGB color space
+    """
+    try:
+        # Check if image has an ICC profile
+        icc_profile = img.info.get('icc_profile')
+        if icc_profile:
+            # Create profile objects
+            src_profile = ImageCms.ImageCmsProfile(io.BytesIO(icc_profile))
+            srgb_profile = ImageCms.createProfile('sRGB')
+
+            # Convert to sRGB
+            img = ImageCms.profileToProfile(
+                img, src_profile, srgb_profile,
+                outputMode='RGB' if img.mode == 'RGB' else img.mode
+            )
+    except Exception:
+        # If conversion fails, just return the original image
+        pass
+    return img
+
+
+def convert_image(source_path, output_path, target_format, quality=80, strip_exif=False, convert_to_srgb_profile=True):
     """
     Convert an image to a different format.
 
@@ -63,8 +94,9 @@ def convert_image(source_path, output_path, target_format, quality=90, strip_exi
         source_path: Path to source image
         output_path: Path for output image
         target_format: Target format (e.g., "jpeg", "png")
-        quality: JPEG quality 1-100 (default: 90)
+        quality: JPEG quality 1-100 (default: 80)
         strip_exif: If True, strip EXIF metadata from output
+        convert_to_srgb_profile: If True, convert to sRGB color profile (default: True)
 
     Returns:
         bool: True if successful, False otherwise
@@ -81,6 +113,10 @@ def convert_image(source_path, output_path, target_format, quality=90, strip_exi
                     exif_data = img.getexif()
                 except Exception:
                     exif_data = None
+
+            # Convert to sRGB if requested
+            if convert_to_srgb_profile:
+                img = convert_to_srgb(img)
 
             # Handle color mode conversion for JPEG output
             if target_format.lower() in ('jpeg', 'jpg'):
@@ -111,6 +147,11 @@ def convert_image(source_path, output_path, target_format, quality=90, strip_exi
             # Add EXIF if preserving
             if exif_data and not strip_exif and target_format.lower() in ('jpeg', 'jpg'):
                 save_kwargs['exif'] = exif_data
+
+            # Embed sRGB ICC profile for better compatibility
+            if convert_to_srgb_profile:
+                srgb_profile = ImageCms.createProfile('sRGB')
+                save_kwargs['icc_profile'] = ImageCms.ImageCmsProfile(srgb_profile).tobytes()
 
             # Ensure output directory exists
             output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1027,8 +1068,8 @@ def main():
     convert_parser.add_argument(
         '--quality',
         type=int,
-        default=90,
-        help='JPEG quality 1-100 (default: 90)'
+        default=80,
+        help='JPEG quality 1-100 (default: 80)'
     )
 
     convert_parser.add_argument(

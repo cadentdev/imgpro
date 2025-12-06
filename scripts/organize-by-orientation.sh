@@ -3,12 +3,13 @@
 # organize-by-orientation.sh - Organize images by orientation or aspect ratio
 #
 # Usage:
-#   ./organize-by-orientation.sh <input_dir> [--by-ratio]
+#   ./organize-by-orientation.sh <input_dir> [output_dir] [--by-ratio]
 #   ./organize-by-orientation.sh ./photos
-#   ./organize-by-orientation.sh ./photos --by-ratio
+#   ./organize-by-orientation.sh ./photos ./organized --by-ratio
 #
 # Arguments:
 #   input_dir  - Directory containing images to organize
+#   output_dir - Optional: output directory for organized files (default: same as input_dir)
 #   --by-ratio - Optional: organize by aspect ratio instead of orientation
 #
 # Output structure (default - by orientation):
@@ -36,23 +37,37 @@ IMAGEPRO="$SCRIPT_DIR/../imagepro.py"
 
 # Check arguments
 if [ $# -lt 1 ]; then
-    echo "Usage: $0 <input_dir> [--by-ratio]"
+    echo "Usage: $0 <input_dir> [output_dir] [--by-ratio]"
     echo ""
     echo "Arguments:"
     echo "  input_dir  - Directory containing images to organize"
+    echo "  output_dir - Optional: output directory (default: same as input_dir)"
     echo "  --by-ratio - Optional: organize by aspect ratio instead of orientation"
     echo ""
     echo "Examples:"
-    echo "  $0 ./photos                # Organize into landscape/portrait/square"
-    echo "  $0 ./photos --by-ratio     # Organize into 16x9/4x3/1x1/other"
+    echo "  $0 ./photos                       # Organize into landscape/portrait/square"
+    echo "  $0 ./photos ./organized           # Output to different directory"
+    echo "  $0 ./photos ./organized --by-ratio # Organize by ratio into different directory"
     exit 1
 fi
 
 INPUT_DIR="$1"
+OUTPUT_DIR=""
 BY_RATIO=false
 
-if [ "$2" = "--by-ratio" ]; then
-    BY_RATIO=true
+# Parse remaining arguments
+shift
+for arg in "$@"; do
+    if [ "$arg" = "--by-ratio" ]; then
+        BY_RATIO=true
+    elif [ -z "$OUTPUT_DIR" ]; then
+        OUTPUT_DIR="$arg"
+    fi
+done
+
+# Default output to input directory if not specified
+if [ -z "$OUTPUT_DIR" ]; then
+    OUTPUT_DIR="$INPUT_DIR"
 fi
 
 # Validate input directory
@@ -90,7 +105,9 @@ for img in "$INPUT_DIR"/*; do
     [ -f "$img" ] || continue
 
     # Skip non-image files (basic extension check)
-    case "${img,,}" in
+    # Use tr for lowercase conversion (compatible with all shells)
+    img_lower=$(echo "$img" | tr '[:upper:]' '[:lower:]')
+    case "$img_lower" in
         *.jpg|*.jpeg|*.png|*.heic|*.heif|*.gif|*.bmp|*.tiff|*.webp)
             ;;
         *)
@@ -113,10 +130,11 @@ for img in "$INPUT_DIR"/*; do
         RATIO=$(echo "$INFO" | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('common_ratio', 'none'))" 2>/dev/null)
 
         if [ "$RATIO" = "none" ] || [ -z "$RATIO" ]; then
-            DEST_DIR="$INPUT_DIR/other"
+            DEST_DIR="$OUTPUT_DIR/other"
         else
             # Convert ratio format: "16:9" -> "16x9" (no colons in dir names)
-            DEST_DIR="$INPUT_DIR/${RATIO//:/'x'}"
+            RATIO_DIR=$(echo "$RATIO" | tr ':' 'x')
+            DEST_DIR="$OUTPUT_DIR/$RATIO_DIR"
         fi
     else
         # Extract orientation from JSON
@@ -128,7 +146,7 @@ for img in "$INPUT_DIR"/*; do
             continue
         fi
 
-        DEST_DIR="$INPUT_DIR/$ORIENTATION"
+        DEST_DIR="$OUTPUT_DIR/$ORIENTATION"
     fi
 
     # Create destination directory if needed
