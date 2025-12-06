@@ -19,7 +19,7 @@ except ImportError:
     pass  # pillow-heif not installed, HEIF support unavailable
 
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 
 def parse_sizes(size_str):
