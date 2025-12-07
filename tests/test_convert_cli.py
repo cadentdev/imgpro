@@ -119,6 +119,31 @@ class TestConvertFormatOption:
         expected_output = output_dir / "test.jpg"
         assert expected_output.exists()
 
+    def test_convert_to_webp(self, sample_square_image, temp_dir):
+        """Test converting to WebP format."""
+        output_dir = temp_dir / "converted"
+        exit_code, stdout, stderr = run_imagepro_convert(
+            sample_square_image, '--format', 'webp', '--output', str(output_dir)
+        )
+
+        assert exit_code == 0
+        expected_output = output_dir / "square.webp"
+        assert expected_output.exists()
+        with Image.open(expected_output) as img:
+            assert img.format == "WEBP"
+
+    def test_convert_to_webp_with_quality(self, sample_png_image, temp_dir):
+        """Test converting to WebP with quality option."""
+        output_dir = temp_dir / "converted"
+        exit_code, stdout, stderr = run_imagepro_convert(
+            sample_png_image, '--format', 'webp', '--quality', '85',
+            '--output', str(output_dir)
+        )
+
+        assert exit_code == 0
+        expected_output = output_dir / "test.webp"
+        assert expected_output.exists()
+
     def test_convert_unsupported_target_format(self, sample_square_image):
         """Test error for unsupported target format."""
         exit_code, stdout, stderr = run_imagepro_convert(

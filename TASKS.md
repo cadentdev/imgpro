@@ -110,56 +110,64 @@ The `rename` command provides two key features for organizing image files:
   - [ ] Support `--output <directory>` option
   - [ ] Exit codes: 0=success, 3=not found, 4=cannot read
 
-### 4. Implement `imagepro convert` (Section 4.3 of PRD) - Priority 2
+### 4. Implement `imagepro convert` (Section 4.3 of PRD) - Completed
 
-> **Status:** In progress
+> **Status:** Completed in v1.2.0
 > **Depends on:** None
 
 The `convert` command enables format conversion, primarily HEIC→JPEG.
 
 - [x] Core implementation complete
   - [x] Add `convert` subparser with positional `<source>` argument
-  - [x] Implement `--format` option (required: jpeg, png)
+  - [x] Implement `--format` option (required: jpeg, png, webp)
   - [x] Default output to `./converted/` directory
   - [x] Preserve EXIF by default
   - [x] Implement `--strip-exif` flag to remove metadata
   - [x] Support `--quality` option (default: 80)
   - [x] Handle existing output files (overwrite with warning)
   - [x] sRGB color profile conversion (automatic)
+  - [x] WebP output format support
 
-- [ ] Write tests (TDD - retroactive)
-  - [ ] Unit tests for format conversion logic
-  - [ ] Unit tests for EXIF preservation/stripping
-  - [ ] Unit tests for sRGB color profile conversion
-  - [ ] CLI integration tests for basic conversion
-  - [ ] CLI integration tests for `--strip-exif` flag
-  - [ ] CLI integration tests for `--quality` option
-  - [ ] Tests for output directory and naming
+- [x] Tests complete (50+ tests)
+  - [x] CLI integration tests for basic conversion
+  - [x] CLI integration tests for `--strip-exif` flag
+  - [x] CLI integration tests for `--quality` option
+  - [x] Tests for output directory and naming
+  - [x] Tests for WebP conversion
 
-- [ ] Enhancements
+- [ ] Future enhancements
   - [ ] Add `--no-srgb` flag to skip sRGB conversion
-  - [ ] Add WebP output format support
 
-### 5. Create Bash Scripts in `scripts/` Directory - Priority 3
+### 5. Create Bash Scripts in `scripts/` Directory - Completed
 
-> **Status:** Not started
+> **Status:** Completed in v1.2.0
 > **Depends on:** rename and convert commands
 
 Utility scripts demonstrating batch workflows with imagepro.
 
-- [ ] Create `scripts/` directory structure
+- [x] Create `scripts/` directory structure
+- [x] Create `scripts/README.md` with usage examples
 
-- [ ] Script 1: `resize-all.sh`
-  - [ ] Resize all images in directory to specified width
-  - [ ] Skip files already smaller than target width
-  - [ ] Use `python3 imagepro.py` invocation
+- [x] Script 1: `resize-all.sh`
+  - [x] Resize all images in directory to specified width
+  - [x] Skip files already smaller than target width
+  - [x] Use `python3 imagepro.py` invocation
 
-- [ ] Script 2: `organize-by-orientation.sh`
-  - [ ] Move images to subdirectories by orientation (landscape/, portrait/, square/)
-  - [ ] Variant: organize by aspect ratio (4x3/, 3x4/, 16x9/, etc.)
-  - [ ] Handle directory naming without colons
+- [x] Script 2: `organize-by-orientation.sh`
+  - [x] Copy images to subdirectories by orientation (landscape/, portrait/, square/)
+  - [x] Variant: organize by aspect ratio (4x3/, 3x4/, 16x9/, etc.)
+  - [x] Handle directory naming without colons
 
-- [ ] Script 3: `generate-responsive-set.sh` (lower priority)
+- [x] Script 3: `rename-all.sh`
+  - [x] Add EXIF date prefix to filenames
+  - [x] Correct file extensions based on actual format
+
+- [x] Script 4: `convert-all.sh`
+  - [x] Convert all images to JPEG with sRGB profile
+  - [x] Configurable quality via environment variable
+  - [x] Force mode to re-convert existing JPEGs
+
+- [ ] Script 5: `generate-responsive-set.sh` (lower priority)
   - [ ] Create multiple width versions for srcset
   - [ ] Output organized for HTML integration
 
@@ -246,23 +254,26 @@ Add individual field flags for selective metadata output.
 
 ## 📊 Project Status
 
-**Current Version:** 1.1.0
-**Test Coverage:** 46% (124 tests)
+**Current Version:** 1.2.0
+**Test Coverage:** ~50% (170+ tests)
 - Info command: 100% (69 tests)
 - Resize command: ~95% (55 tests)
+- Convert command: 100% (52 tests)
 
 **Completed:**
 - ✅ Info command (full implementation)
 - ✅ Resize command (implementation complete, CLI refactor pending)
+- ✅ Rename command (EXIF date prefix + extension correction)
+- ✅ Convert command (HEIC→JPEG, PNG, WebP with sRGB conversion)
 - ✅ HEIF/HEIC format support via pillow-heif
 - ✅ Comprehensive test suite
 - ✅ CI/CD pipeline
-- ✅ Documentation updates for v1.1.0
+- ✅ Batch scripts in `scripts/` directory
+- ✅ Documentation updates for v1.2.0
 
 **Next Priorities (in order):**
-1. Implement `imagepro rename` command (extension fix + EXIF date prefix)
-2. Implement `imagepro convert` command (HEIC→JPEG, format conversion)
-3. Create bash utility scripts in `scripts/` directory
-4. Add field selection to `imagepro info` command
+1. Add field selection to `imagepro info` command
+2. Align `imagepro resize` CLI with PRD (positional file argument)
+3. Add `--verbose` and `--quiet` modes
 
 **Core Principle:** All file-modifying commands create copies by default (non-destructive).

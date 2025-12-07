@@ -170,7 +170,7 @@ Future versions may add an `--in-place` option to override this behavior for use
     - `--format` is a required option specifying the desired output format (e.g., `jpeg`, `png`, `webp`).
   - **Format support:**
     - Accept any image format that Pillow can open as input (including HEIF/HEIC with `pillow-heif`).
-    - Support at least JPEG and PNG as output formats in the initial version, with a clear path to extend to WebP, AVIF, and others.
+    - Support JPEG, PNG, and WebP as output formats (v1.2+), with a clear path to extend to AVIF and others.
     - Provide meaningful errors for unsupported target formats.
   - **Output behavior:**
     - By default, create converted files in a `./converted/` directory (non-destructive).

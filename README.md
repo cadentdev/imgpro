@@ -27,6 +27,19 @@ A command-line tool for generating multiple resolutions of images to support res
 - **Organized Output**: Configurable output directory with clean naming (`photo_300.jpg`)
 - **Format Support**: JPEG only in v1.0 (PNG, WebP, AVIF planned for future versions)
 
+### Convert Command (v1.1+)
+- **Format Conversion**: Convert between JPEG, PNG, and WebP formats
+- **HEIC/HEIF Support**: Convert iPhone photos to web-compatible formats
+- **sRGB Color Profile**: Automatic conversion to sRGB for consistent web display
+- **Quality Control**: Configurable quality for lossy formats (default: 80)
+- **EXIF Handling**: Preserve or strip metadata with `--strip-exif` flag
+- **MPO Support**: Handle multi-picture object files from cameras
+
+### Rename Command (v1.1+)
+- **EXIF Date Prefix**: Add `YYYY-MM-DDTHHMMSS_` prefix for chronological sorting
+- **Extension Correction**: Fix mismatched extensions based on actual file format
+- **Non-Destructive**: Creates copies, preserving originals
+
 ## Installation
 
 ### Prerequisites
@@ -60,7 +73,7 @@ A command-line tool for generating multiple resolutions of images to support res
 
 ## Usage
 
-ImagePro provides two main commands: `info` for inspecting image metadata and `resize` for generating multiple image sizes.
+ImagePro provides several commands for image processing workflows.
 
 ### Basic Syntax
 
@@ -71,6 +84,12 @@ python3 imagepro.py info <file> [options]
 # Resize command - generate multiple sizes
 python3 imagepro.py resize --width <sizes> --input <file> [options]
 python3 imagepro.py resize --height <sizes> --input <file> [options]
+
+# Convert command - change image format
+python3 imagepro.py convert <file> --format <format> [options]
+
+# Rename command - fix extensions and add date prefix
+python3 imagepro.py rename <file> --ext --prefix-exif-date [options]
 ```
 
 ---
@@ -246,6 +265,129 @@ done
 find ./photos -name "*.jpg" | while read img; do
   python3 imagepro.py resize --width 300,600 --input "$img" --output ./resized/
 done
+```
+
+---
+
+## Convert Command
+
+Convert images between formats with automatic sRGB color profile conversion.
+
+### Usage
+
+```bash
+python3 imagepro.py convert <file> --format <format> [options]
+```
+
+### Parameters
+
+**Required:**
+- `<file>`: Path to source image file
+- `--format <format>`: Target format (`jpeg`, `jpg`, `png`, `webp`)
+
+**Optional:**
+- `--quality <1-100>` (default: 80): Quality for lossy formats
+- `--output <directory>` (default: `./converted/`): Output directory
+- `--strip-exif`: Remove EXIF metadata from output
+
+### Examples
+
+#### Convert HEIC to JPEG
+
+```bash
+python3 imagepro.py convert photo.heic --format jpeg
+```
+
+#### Convert to WebP with Custom Quality
+
+```bash
+python3 imagepro.py convert photo.jpg --format webp --quality 85 --output ./webp/
+```
+
+#### Batch Convert All HEIC Files
+
+```bash
+for img in *.heic; do
+  python3 imagepro.py convert "$img" --format jpeg
+done
+```
+
+---
+
+## Rename Command
+
+Rename images based on actual format or EXIF metadata.
+
+### Usage
+
+```bash
+python3 imagepro.py rename <file> [--ext] [--prefix-exif-date] [options]
+```
+
+### Parameters
+
+**Required:**
+- `<file>`: Path to image file
+- At least one of: `--ext` or `--prefix-exif-date`
+
+**Optional:**
+- `--output <directory>`: Output directory (default: same as source)
+
+### Examples
+
+#### Fix Mismatched Extension
+
+```bash
+# photo.HEIC (actually JPEG) → photo.jpg
+python3 imagepro.py rename photo.HEIC --ext
+```
+
+#### Add EXIF Date Prefix
+
+```bash
+# photo.jpg → 2024-11-12T143000_photo.jpg
+python3 imagepro.py rename photo.jpg --prefix-exif-date
+```
+
+#### Combine Both Operations
+
+```bash
+# photo.HEIC (JPEG, taken 2024-11-12 14:30:00) → 2024-11-12T143000_photo.jpg
+python3 imagepro.py rename photo.HEIC --ext --prefix-exif-date
+```
+
+---
+
+## Batch Scripts
+
+The `scripts/` directory contains utility scripts for batch processing:
+
+| Script | Purpose |
+|--------|---------|
+| `rename-all.sh` | Add EXIF date prefix and correct extensions |
+| `convert-all.sh` | Convert images to JPEG with sRGB profile |
+| `resize-all.sh` | Resize images to specified width(s) |
+| `organize-by-orientation.sh` | Organize by orientation or aspect ratio |
+
+See [scripts/README.md](scripts/README.md) for detailed usage.
+
+### Example Workflow
+
+```bash
+# Complete image processing pipeline
+source .venv/bin/activate
+
+# 1. Rename with EXIF dates
+./scripts/rename-all.sh ./photos ./renamed
+
+# 2. Convert to JPEG with sRGB
+./scripts/convert-all.sh ./renamed ./converted
+
+# 3. Resize for web
+./scripts/resize-all.sh ./converted 1080 ./final
+
+# 4. Organize by aspect ratio
+./scripts/organize-by-orientation.sh ./final ./organized --by-ratio
 ```
 
 ## Testing
@@ -450,16 +592,19 @@ ImagePro leverages Pillow (PIL) for image processing and supports a wide range o
 
 See [PRD.md](PRD.md) for the complete product requirements and future enhancements.
 
+### Version History
+
+- v1.0: Info and resize commands with JPEG support
+- v1.1: Rename and convert commands, HEIC/HEIF support, sRGB conversion
+- v1.2: WebP output support, batch scripts, documentation updates
+
 ### Planned Features
 
-- **v1.0.x**: `imagepro info` subcommand for image metadata, orientation, aspect ratio, and EXIF inspection with JSON/CSV output.
-- **v1.1**: Batch processing (multiple files, glob patterns, directories)
-- **v1.2**: Advanced resizing (crop modes, fit modes)
-- **v1.3**: Format support (PNG, WebP, AVIF, format conversion)
-- **v1.4**: Metadata options (preserve EXIF, progressive JPEG)
-- **v1.5**: Responsive web features (generate HTML srcset, picture elements)
-- **v1.6**: Configuration files (presets, per-project config)
-- **v2.0**: Advanced features (watermarking, filters, parallel processing)
+- v1.3: Advanced resizing (crop modes, fit modes)
+- v1.4: AVIF support, metadata editing
+- v1.5: Responsive web features (generate HTML srcset, picture elements)
+- v1.6: Configuration files (presets, per-project config)
+- v2.0: Advanced features (watermarking, filters, parallel processing)
 
 ## Development
 
@@ -471,12 +616,20 @@ imagepro/
 │   └── workflows/
 │       └── test.yml          # CI/CD pipeline
 ├── devlog/                   # Development logs and PR descriptions
+├── scripts/
+│   ├── README.md            # Script documentation
+│   ├── convert-all.sh       # Batch format conversion
+│   ├── organize-by-orientation.sh  # Organize by orientation/ratio
+│   ├── rename-all.sh        # Batch rename with EXIF dates
+│   └── resize-all.sh        # Batch resize
 ├── tests/
 │   ├── __init__.py
 │   ├── conftest.py          # Pytest configuration and fixtures
 │   ├── fixtures.py          # Test image generation with synthetic EXIF
 │   ├── test_info_cli.py     # Info command integration tests
 │   ├── test_info_helpers.py # Info command unit tests
+│   ├── test_convert_cli.py  # Convert command integration tests
+│   ├── test_rename_cli.py   # Rename command integration tests
 │   ├── test_resize_cli.py   # Resize command integration tests
 │   └── test_resize_helpers.py # Resize command unit tests
 ├── imagepro.py              # Main CLI tool
@@ -554,8 +707,8 @@ python -m pytest tests/test_info_cli.py::TestInfoCommandBasics::test_info_comman
 ### Project Priorities
 
 See [TASKS.md](TASKS.md) for current priorities and status. Next priorities include:
-1. Refactor resize CLI to use positional arguments (matching PRD)
-2. Implement `convert` command for format conversion
+1. Add field selection to `imagepro info` command
+2. Refactor resize CLI to use positional arguments (matching PRD)
 3. Add `--verbose` and `--quiet` modes
 
 For design decisions and feature requirements, refer to [PRD.md](PRD.md).

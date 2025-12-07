@@ -21,13 +21,14 @@ except ImportError:
     pass  # pillow-heif not installed, HEIF support unavailable
 
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
 # Supported output formats for convert command
 SUPPORTED_OUTPUT_FORMATS = {
     'jpeg': '.jpg',
     'jpg': '.jpg',
     'png': '.png',
+    'webp': '.webp',
 }
 
 
@@ -143,6 +144,9 @@ def convert_image(source_path, output_path, target_format, quality=80, strip_exi
                 save_kwargs['format'] = 'JPEG'
             elif target_format.lower() == 'png':
                 save_kwargs['format'] = 'PNG'
+            elif target_format.lower() == 'webp':
+                save_kwargs['quality'] = quality
+                save_kwargs['format'] = 'WEBP'
 
             # Add EXIF if preserving
             if exif_data and not strip_exif and target_format.lower() in ('jpeg', 'jpg'):
@@ -857,6 +861,21 @@ def cmd_rename(args):
         print(f"No change needed: {input_path.name}")
         sys.exit(0)
 
+    # Handle case-insensitive filesystems (macOS, Windows)
+    # If the paths differ only by case, we need to use a temp file
+    try:
+        if output_path.exists() and os.path.samefile(input_path, output_path):
+            # Same file on case-insensitive filesystem - rename via temp file
+            import tempfile
+            temp_path = output_path.parent / f".tmp_{new_filename}"
+            shutil.copy2(input_path, temp_path)
+            os.remove(input_path)
+            shutil.move(str(temp_path), str(output_path))
+            print(f"Created: {output_path}")
+            return
+    except OSError:
+        pass  # Files are different, proceed normally
+
     # Copy the file (non-destructive)
     shutil.copy2(input_path, output_path)
 
@@ -1056,7 +1075,7 @@ def main():
     convert_parser.add_argument(
         '--format', '-f',
         required=True,
-        help='Target format (jpeg, jpg, png)'
+        help='Target format (jpeg, jpg, png, webp)'
     )
 
     convert_parser.add_argument(

@@ -10,11 +10,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
-- `imagepro rename` subcommand for fixing extensions and adding EXIF date prefixes
-- `imagepro convert` subcommand for format conversion (HEIC to JPEG, etc.)
 - Custom field selection for `imagepro info` command
-- Bash utility scripts in `scripts/` directory
-- `--strip-exif` option for commands that create file copies
+- AVIF output format support
+- `--no-srgb` flag for convert command
+- `--verbose` and `--quiet` modes
+
+---
+
+## [1.2.0] - 2025-12-06
+
+### Added
+- **WebP output format support** for `imagepro convert` command
+- **Batch processing scripts** in `scripts/` directory:
+  - `rename-all.sh` - Add EXIF date prefix and correct extensions
+  - `convert-all.sh` - Convert images to JPEG with sRGB profile
+  - `resize-all.sh` - Resize images to specified width(s)
+  - `organize-by-orientation.sh` - Organize by orientation or aspect ratio
+- `scripts/README.md` with comprehensive usage examples
+- sRGB color profile conversion (automatic) for convert command
+- EXIF preservation by default in convert command
+- `--strip-exif` flag for convert command
+
+### Fixed
+- Case-insensitive filesystem handling for rename command (macOS/Windows)
+
+### Changed
+- Default JPEG quality changed from 90 to 80 for convert command
+- Updated documentation (README, TASKS, PRD) to reflect v1.2.0 features
 
 ---
 
@@ -81,5 +103,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Description |
 |---------|------|-------------|
-| 1.1.0 | 2025-12-06 | Added HEIF/HEIC support, improved test coverage |
+| 1.2.0 | 2025-12-06 | WebP support, batch scripts, sRGB conversion |
+| 1.1.0 | 2025-12-06 | Added HEIF/HEIC support, rename/convert commands |
 | 1.0.0 | 2025-11-12 | Initial release with info and resize commands |
