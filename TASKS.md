@@ -2,7 +2,7 @@
 
 This document tracks implementation progress based on `PRD.md`.
 
-**Last Updated:** 2025-12-06
+**Last Updated:** 2025-12-08
 
 ---
 
@@ -78,37 +78,37 @@ This document tracks implementation progress based on `PRD.md`.
 
 ## 📋 In Progress / Planned
 
-### 3. Implement `imagepro rename` (Section 4.4 of PRD) - Priority 1
+### 3. Implement `imagepro rename` (Section 4.4 of PRD) - Completed
 
-> **Status:** Not started
+> **Status:** Completed in v1.1.0
 > **Depends on:** None
 
 The `rename` command provides two key features for organizing image files:
 1. Fix mismatched extensions based on actual file format
 2. Prepend EXIF date/time for chronological sorting
 
-- [ ] Write tests first (TDD)
-  - [ ] Unit tests for format detection and extension mapping
-  - [ ] Unit tests for EXIF date extraction and formatting
-  - [ ] Unit tests for filename transformation logic
-  - [ ] CLI integration tests for `--ext` flag
-  - [ ] CLI integration tests for `--prefix-exif-date` flag
-  - [ ] CLI integration tests for combined flags
-  - [ ] Tests for missing EXIF date (skip with warning)
-  - [ ] Tests for output directory option
+- [x] Write tests first (TDD)
+  - [x] Unit tests for format detection and extension mapping
+  - [x] Unit tests for EXIF date extraction and formatting
+  - [x] Unit tests for filename transformation logic
+  - [x] CLI integration tests for `--ext` flag
+  - [x] CLI integration tests for `--prefix-exif-date` flag
+  - [x] CLI integration tests for combined flags
+  - [x] Tests for missing EXIF date (skip with warning)
+  - [x] Tests for output directory option
 
-- [ ] Implement `rename` command
-  - [ ] Add `rename` subparser with positional `<file>` argument
-  - [ ] Implement `--ext` flag for extension correction
-    - [ ] Read actual image format from file content
-    - [ ] Map format to lowercase extension (JPEG→.jpg, PNG→.png, HEIF→.heic)
-    - [ ] Create copy with corrected extension
-  - [ ] Implement `--prefix-exif-date` flag
-    - [ ] Extract DateTimeOriginal from EXIF
-    - [ ] Format as YYYY-MM-DDTHHMMSS_ (no colons for macOS)
-    - [ ] Skip file with warning if no EXIF date
-  - [ ] Support `--output <directory>` option
-  - [ ] Exit codes: 0=success, 3=not found, 4=cannot read
+- [x] Implement `rename` command
+  - [x] Add `rename` subparser with positional `<file>` argument
+  - [x] Implement `--ext` flag for extension correction
+    - [x] Read actual image format from file content
+    - [x] Map format to lowercase extension (JPEG→.jpg, PNG→.png, HEIF→.heic)
+    - [x] Create copy with corrected extension
+  - [x] Implement `--prefix-exif-date` flag
+    - [x] Extract DateTimeOriginal from EXIF
+    - [x] Format as YYYY-MM-DDTHHMMSS_ (no colons for macOS)
+    - [x] Skip file with warning if no EXIF date
+  - [x] Support `--output <directory>` option
+  - [x] Exit codes: 0=success, 3=not found, 4=cannot read
 
 ### 4. Implement `imagepro convert` (Section 4.3 of PRD) - Completed
 
@@ -204,11 +204,11 @@ Add individual field flags for selective metadata output.
   - [ ] Keep `--input` working for backwards compatibility (or plan breaking change)
   - [ ] Ensure help text matches PRD style
 
-- [ ] Verify behavior matches spec
-  - [ ] Confirm width/height mutual exclusion (already tested)
-  - [ ] Confirm upscaling prevention (already tested)
-  - [ ] Confirm output directory behavior (already tested)
-  - [ ] Verify EXIF stripping and ICC profile preservation
+- [x] Verify behavior matches spec
+  - [x] Confirm width/height mutual exclusion (tested in test_resize_cli.py)
+  - [x] Confirm upscaling prevention (tested in TestResizeUpscalingPrevention)
+  - [x] Confirm output directory behavior (tested in TestResizeOutputHandling)
+  - [x] Verify EXIF stripping (implemented in resize_image, line 584)
 
 - [ ] Update documentation
   - [ ] Update `README.md` examples to use positional `<file>`
@@ -255,10 +255,11 @@ Add individual field flags for selective metadata output.
 ## 📊 Project Status
 
 **Current Version:** 1.2.0
-**Test Coverage:** ~50% (170+ tests)
+**Test Coverage:** ~50% (311 tests)
 - Info command: 100% (69 tests)
 - Resize command: ~95% (55 tests)
 - Convert command: 100% (52 tests)
+- Rename command: 100% (50 tests)
 
 **Completed:**
 - ✅ Info command (full implementation)

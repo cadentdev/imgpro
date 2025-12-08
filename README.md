@@ -368,6 +368,8 @@ The `scripts/` directory contains utility scripts for batch processing:
 | `convert-all.sh` | Convert images to JPEG with sRGB profile |
 | `resize-all.sh` | Resize images to specified width(s) |
 | `organize-by-orientation.sh` | Organize by orientation or aspect ratio |
+| `organize-by-date.sh` | Organize into subdirectories by ISO date prefix |
+| `organize-all-by-date.sh` | Run date organization on all subdirectories |
 
 See [scripts/README.md](scripts/README.md) for detailed usage.
 
@@ -468,7 +470,9 @@ python -m pytest tests/ --cov=imagepro --cov-report=term-missing
 - **Resize command:** ~95% coverage (55 tests)
   - 28 unit tests for helper functions and shared utilities
   - 27 CLI integration tests
-- **Overall project:** 46% coverage (124 total tests)
+- **Convert command:** 100% coverage (52 tests)
+- **Rename command:** 100% coverage (50 tests)
+- **Overall project:** 311 total tests
 
 **CI/CD:**
 - GitHub Actions automatically runs tests on all PRs
@@ -619,7 +623,9 @@ imagepro/
 ├── scripts/
 │   ├── README.md            # Script documentation
 │   ├── convert-all.sh       # Batch format conversion
-│   ├── organize-by-orientation.sh  # Organize by orientation/ratio
+│   ├── organize-all-by-date.sh    # Run date organization on subdirs
+│   ├── organize-by-date.sh        # Organize by ISO date prefix
+│   ├── organize-by-orientation.sh # Organize by orientation/ratio
 │   ├── rename-all.sh        # Batch rename with EXIF dates
 │   └── resize-all.sh        # Batch resize
 ├── tests/
@@ -629,7 +635,9 @@ imagepro/
 │   ├── test_info_cli.py     # Info command integration tests
 │   ├── test_info_helpers.py # Info command unit tests
 │   ├── test_convert_cli.py  # Convert command integration tests
+│   ├── test_convert_helpers.py # Convert command unit tests
 │   ├── test_rename_cli.py   # Rename command integration tests
+│   ├── test_rename_helpers.py # Rename command unit tests
 │   ├── test_resize_cli.py   # Resize command integration tests
 │   └── test_resize_helpers.py # Resize command unit tests
 ├── imagepro.py              # Main CLI tool

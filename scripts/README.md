@@ -10,6 +10,8 @@ Utility scripts for batch image processing workflows using `imagepro`.
 | `convert-all.sh` | Convert images to JPEG with sRGB color profile |
 | `resize-all.sh` | Resize images to specified width(s) |
 | `organize-by-orientation.sh` | Organize images by orientation or aspect ratio |
+| `organize-by-date.sh` | Organize images into subdirectories by ISO date prefix |
+| `organize-all-by-date.sh` | Run `organize-by-date.sh` on all subdirectories |
 
 ## Prerequisites
 
@@ -167,6 +169,98 @@ Created directories:
   3x4/: 46 files
   other/: 13 files
 ```
+
+---
+
+## organize-by-date.sh
+
+Organize images into subdirectories based on their ISO date prefix (e.g., `2025-10-17`).
+
+### Usage
+
+```bash
+./scripts/organize-by-date.sh [directory]
+```
+
+### Arguments
+
+- `directory` - Directory containing images to organize (default: current directory)
+
+### What it does
+
+1. Finds files starting with `2025-` (ISO date format)
+2. Extracts the first 10 characters as the date (e.g., `2025-10-17`)
+3. Creates a subdirectory with that date name
+4. Moves the file into the corresponding date subdirectory
+
+### Examples
+
+```bash
+# Organize files in current directory
+./scripts/organize-by-date.sh
+
+# Organize files in specific directory
+./scripts/organize-by-date.sh ./photos
+```
+
+### Sample Output
+
+```
+Moved: 2025-10-17T095346_photo.jpg -> 2025-10-17/
+Moved: 2025-10-17T101030_IMG_3749.jpg -> 2025-10-17/
+Moved: 2025-10-19T151734_photo2.jpg -> 2025-10-19/
+```
+
+### Notes
+
+- Only processes files (skips directories)
+- Files must start with `2025-` to be organized
+- Creates date subdirectories automatically
+
+---
+
+## organize-all-by-date.sh
+
+Run `organize-by-date.sh` on all subdirectories within a parent directory.
+
+### Usage
+
+```bash
+./scripts/organize-all-by-date.sh <parent_directory>
+```
+
+### Arguments
+
+- `parent_directory` - Directory containing subdirectories to process
+
+### What it does
+
+1. Iterates through all subdirectories in the parent directory
+2. Runs `organize-by-date.sh` in each subdirectory
+3. Reports progress for each subdirectory processed
+
+### Examples
+
+```bash
+# Organize all subdirectories in img/organized
+./scripts/organize-all-by-date.sh ./img/organized
+```
+
+### Sample Output
+
+```
+=== Processing: ./img/organized/3x4/ ===
+Moved: 2025-10-16T095029_photo.jpg -> 2025-10-16/
+Moved: 2025-10-17T095346_photo.jpg -> 2025-10-17/
+=== Processing: ./img/organized/4x3/ ===
+Moved: 2025-10-18T120000_photo.jpg -> 2025-10-18/
+=== Done ===
+```
+
+### Notes
+
+- Validates that the parent directory exists before processing
+- Useful after organizing images by orientation/ratio with `organize-by-orientation.sh`
 
 ---
 
