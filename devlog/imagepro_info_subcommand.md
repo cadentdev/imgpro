@@ -6,13 +6,13 @@
 
 Here's a real-world scenario where I'd like to use the `imagepro` tool: I have a large set of JPEG images, 161 to be exact, and I'd like to post them in sets to Instagram. Because Instagram requires all images added to a single post to match the same aspect ratio, I'd like to use `imagepro` to read the dimensions of an image and return the dimensions of the image, and whether the image is portrait or landscape, and whether the aspect ratio matches common values (1:1, 4:3, 16:9, etc.). 
 
-I'm thinking about an `imagepro info` sub-command that will return the information about an image, including (if available) the creation date, width, height, resolution, and other EXIF data, if available, plus a determination of whether the image is portrait, landscape, or square, and the aspect ratio expressed in common terms (like 16:9). Then I could write a simple bash command that would, for each image in the directory, run `imagepro info` and append the output to a text file.
+I'm thinking about an `imgpro info` sub-command that will return the information about an image, including (if available) the creation date, width, height, resolution, and other EXIF data, if available, plus a determination of whether the image is portrait, landscape, or square, and the aspect ratio expressed in common terms (like 16:9). Then I could write a simple bash command that would, for each image in the directory, run `imgpro info` and append the output to a text file.
 
-What do you think of this feature? Based on the existing code in @imagepro.py, how could we implement this? Let's plan this out, without writing any code just yet. Please ask me any questions you may have about the feature, the use case, or any other issues you identify. 
+What do you think of this feature? Based on the existing code in @imgpro.py, how could we implement this? Let's plan this out, without writing any code just yet. Please ask me any questions you may have about the feature, the use case, or any other issues you identify. 
 
 ### Planner Response
 
-Nice use case; this fits `imagepro` really well. I’d like to look at how the current CLI and processing pipeline are structured in `imagepro.py` so we can design an `info` subcommand that feels native and is easy to script from bash. I’ll also set up a small task list so we don’t miss edge cases (EXIF, aspect ratios, output format, etc.), then come back with a concrete plan and some questions for you.
+Nice use case; this fits `imagepro` really well. I’d like to look at how the current CLI and processing pipeline are structured in `imgpro.py` so we can design an `info` subcommand that feels native and is easy to script from bash. I’ll also set up a small task list so we don’t miss edge cases (EXIF, aspect ratios, output format, etc.), then come back with a concrete plan and some questions for you.
 
 *Updated todo list*
 
@@ -20,9 +20,9 @@ Nice use case; this fits `imagepro` really well. I’d like to look at how the c
 
 ### Planner Response
 
-I’ve located [imagepro.py](cci:7://file:///Users/neil/Repos/cadentdev/imagepro/Users/neil/Repos/cadentdev/imagepro/imagepro.py:0:0-0:0); next I’ll inspect how the current CLI is wired and what helpers exist for image metadata, then propose a concrete, code-free plan for an `info` subcommand (including output shape and aspect‐ratio logic) and ask you a few focused questions about format and EXIF behavior.
+I’ve located [imgpro.py](cci:7://file:///Users/neil/Repos/cadentdev/imagepro/Users/neil/Repos/cadentdev/imagepro/imgpro.py:0:0-0:0); next I’ll inspect how the current CLI is wired and what helpers exist for image metadata, then propose a concrete, code-free plan for an `info` subcommand (including output shape and aspect‐ratio logic) and ask you a few focused questions about format and EXIF behavior.
 
-*Viewed [imagepro.py](file:///Users/neil/Repos/cadentdev/imagepro/imagepro.py) *
+*Viewed [imgpro.py](file:///Users/neil/Repos/cadentdev/imagepro/imgpro.py) *
 
 *Updated todo list*
 
@@ -32,7 +32,7 @@ I’ve located [imagepro.py](cci:7://file:///Users/neil/Repos/cadentdev/imagepro
 
 # Initial reaction
 
-I think `imagepro info` is a very natural next command:
+I think `imgpro info` is a very natural next command:
 - It fits your existing subcommand architecture.
 - It directly supports a real workflow (Instagram batching).
 - It reuses the same primitives you already depend on (`Pillow`, JPEG focus, consistent exit codes).
@@ -46,7 +46,7 @@ Below is a concrete plan (no code), then a few questions where your answers will
 ### Command shape
 
 - **Command**:  
-  `imagepro info --input <file> [options]`
+  `imgpro info --input <file> [options]`
 
 - **Core options** (keeping consistent with `resize` style):
   - `--input <filepath>` (required)
@@ -58,20 +58,20 @@ Below is a concrete plan (no code), then a few questions where your answers will
 You’d still rely on shell loops for batch processing:
 ```bash
 for img in *.jpg; do
-  imagepro info --input "$img" --short >> info.txt
+  imgpro info --input "$img" --short >> info.txt
 done
 ```
 
 ---
 
-## What `imagepro info` would report
+## What `imgpro info` would report
 
 For your Instagram use case, the **core fields** I’d target are:
 
 - **File info**
   - **`filename`**: basename, e.g., `photo_123.jpg`
   - **`path`**: full or relative path (probably what the user passed in, resolved via `Path`).
-  - **`size_kb`**: reuse [get_file_size_kb()](cci:1://file:///Users/neil/Repos/cadentdev/imagepro/imagepro.py:34:0-36:43).
+  - **`size_kb`**: reuse [get_file_size_kb()](cci:1://file:///Users/neil/Repos/cadentdev/imagepro/imgpro.py:34:0-36:43).
 
 - **Dimensions & orientation**
   - **`width`**, **`height`**: pixel dimensions (after handling EXIF orientation, see below).
@@ -149,7 +149,7 @@ Then you can do:
 
 ```bash
 for img in *.jpg; do
-  imagepro info --input "$img" --json
+  imgpro info --input "$img" --json
 done > info.jsonl
 ```
 
@@ -237,9 +237,9 @@ Additionally:
 Given your current structure, integration looks straightforward:
 
 - **New handler**:
-  - Add a `cmd_info(args)` function, styled similarly to [cmd_resize](cci:1://file:///Users/neil/Repos/cadentdev/imagepro/imagepro.py:126:0-200:19):
+  - Add a `cmd_info(args)` function, styled similarly to [cmd_resize](cci:1://file:///Users/neil/Repos/cadentdev/imagepro/imgpro.py:126:0-200:19):
     - Validate file existence (`Path(args.input)`).
-    - Reuse [validate_jpeg](cci:1://file:///Users/neil/Repos/cadentdev/imagepro/imagepro.py:26:0-31:15) or optionally broaden support (see questions).
+    - Reuse [validate_jpeg](cci:1://file:///Users/neil/Repos/cadentdev/imagepro/imgpro.py:26:0-31:15) or optionally broaden support (see questions).
     - Open the image with `Pillow`.
     - Collect:
       - `width`, `height` (EXIF-aware).
@@ -248,7 +248,7 @@ Given your current structure, integration looks straightforward:
       - EXIF dict & selected fields.
     - Format output based on `--json` / `--short` / default.
 
-- **New subparser in [main()](cci:1://file:///Users/neil/Repos/cadentdev/imagepro/imagepro.py:203:0-264:19)**:
+- **New subparser in [main()](cci:1://file:///Users/neil/Repos/cadentdev/imagepro/imgpro.py:203:0-264:19)**:
   - `info_parser = subparsers.add_parser('info', help='Show image metadata and aspect ratio info', ...)`
   - Add `--input`, `--json`, `--short`, `--exif`, `--exif-all`.
   - `info_parser.set_defaults(func=cmd_info)`.
@@ -267,7 +267,7 @@ Given your current structure, integration looks straightforward:
 Your answers here will lock in the design before we write any code.
 
 1. **Scope of supported formats**
-   - Do you want `info` to remain **JPEG-only** in v1.0 (reusing [validate_jpeg()](cci:1://file:///Users/neil/Repos/cadentdev/imagepro/imagepro.py:26:0-31:15)), or should it accept **any Pillow-readable format** (e.g., PNG) since it’s read-only?
+   - Do you want `info` to remain **JPEG-only** in v1.0 (reusing [validate_jpeg()](cci:1://file:///Users/neil/Repos/cadentdev/imagepro/imgpro.py:26:0-31:15)), or should it accept **any Pillow-readable format** (e.g., PNG) since it’s read-only?
    - For Instagram, are your 161 images all JPEGs?
 
 2. **Preferred scripting output**
@@ -307,7 +307,7 @@ Your answers here will lock in the design before we write any code.
 
 ## Summary
 
-- `imagepro info` slots cleanly into your existing subcommand design.
+- `imgpro info` slots cleanly into your existing subcommand design.
 - It can provide exactly what you need for Instagram grouping: orientation, aspect ratio classification, and EXIF-aware dimensions.
 - We can support both a human-readable mode and a script-friendly mode (`--json` and/or `--short`), making it easy to append to text files and post-process.
 
@@ -319,7 +319,7 @@ Once you answer the questions above, I’ll refine this plan (if needed) and the
 
 Great work on the planning and excellent questions! Here are my answers:
 
-1. Scope of supported formats: since this is read-only feature, this is a good opportunity to extend the code to support any Pillow-readable format. For this Instagram example, we have HEIF, JPEG and RAW files, plus some MP4 files which I'd like to ignore for now. Another feature I'd like to add is `imagepro convert` but let's implement this `info` feature first
+1. Scope of supported formats: since this is read-only feature, this is a good opportunity to extend the code to support any Pillow-readable format. For this Instagram example, we have HEIF, JPEG and RAW files, plus some MP4 files which I'd like to ignore for now. Another feature I'd like to add is `imgpro convert` but let's implement this `info` feature first
 2. Output: JSON is extremely useful and should be supported. The `--short` option should default to comma separated values, **not** key=value lines, because I feel like we could easily convert JSON data to key=value lines with tools like `jq`, and the ability to generate a CSV file by appending comma separated values to a text file means we can easily read the output data in a spreadsheet or a database.
 3. Resolution: Good catch! The most important information at this stage is the image's **pixel dimensions**. We may be interested in DPI in the future, but it's not really relevant for this use case. As you note, IG doens't care about DPI. Let's print out DPI if it's available from EXIF data
 4. Let's start with a small curated set of EXIF data. I'm particularly interested in the date the photo was taken, if it's available, since this doesn't always correspond to the file creation date. In this case, the file creation date reflects when the file was downloaded from Google Photos and decompressed, not the date the photo was taken. Also, `--exif-all` is a great addition. Good work!
@@ -327,14 +327,14 @@ Great work on the planning and excellent questions! Here are my answers:
 6. Aspect ratio matching: let's go with exact matches. If we add a range of tolerances, it implies that we'll have to crop the images when resizing. This is a feature I'd like to add, but let's just look for the exact matches now.
 7. Single files: I'd like to adhere to a "UNIX philosophy" where `imagepro` does one thing well; in this case, reading file info (although we are expanding on this idea with the sub-command structure). We can use other tools, like shell loops, to handle globs and directories. 
 
-In addition, since the `<filepath>` is required for `imagepro info` I think we should convert it to a positional parameter (e.g. `imagepro info <file> [options]`) and also apply that change to the `imagepro resize` subcommand as well.
+In addition, since the `<filepath>` is required for `imgpro info` I think we should convert it to a positional parameter (e.g. `imgpro info <file> [options]`) and also apply that change to the `imgpro resize` subcommand as well.
 
-Based on the answers I've provided, please update @PRD.md with a section devoted to the `imagepro info` subcommand. Also, update the User Personas section, perhaps adding a **Social Media Manager** section to describe the IG use case and similar usage. 
+Based on the answers I've provided, please update @PRD.md with a section devoted to the `imgpro info` subcommand. Also, update the User Personas section, perhaps adding a **Social Media Manager** section to describe the IG use case and similar usage. 
 
-Note that in some cases the program is called `scale_image` and this should be updated to `imagepro resize` to reflect our new naming convention. Update the PRD.md elsewhere as needed to reflect:
+Note that in some cases the program is called `scale_image` and this should be updated to `imgpro resize` to reflect our new naming convention. Update the PRD.md elsewhere as needed to reflect:
 
 - The decisions we've made in this current chat
-- The actual state of the code in @imagepro.py
+- The actual state of the code in @imgpro.py
 
 Of course, let me know if you have any questions before you edit the PRD file. 
 
@@ -342,9 +342,9 @@ Of course, let me know if you have any questions before you edit the PRD file.
 
 I’ll update the PRD to align with the current code and our decisions, by:  
 - Reviewing the full [PRD.md](cci:7://file:///Users/neil/Repos/cadentdev/imagepro/PRD.md:0:0-0:0) to see how personas and features are currently structured.  
-- Adding a new `imagepro info` section with the behavior we agreed on.  
+- Adding a new `imgpro info` section with the behavior we agreed on.  
 - Updating the User Personas section to include a Social Media Manager for the IG use case.  
-- Replacing outdated `scale_image` references and any assumptions that no longer match [imagepro.py](cci:7://file:///Users/neil/Repos/cadentdev/imagepro/imagepro.py:0:0-0:0).  
+- Replacing outdated `scale_image` references and any assumptions that no longer match [imgpro.py](cci:7://file:///Users/neil/Repos/cadentdev/imagepro/imgpro.py:0:0-0:0).  
 
 I’ll first read the complete PRD and adjust the task list, then propose a concise outline of the changes before I apply an actual patch.
 
@@ -371,7 +371,7 @@ From your answers, we now have:
   - Common set: `1:1`, `4:3`, `3:2`, `16:9`, plus IG-relevant ones like `4:5`, `5:4`, `9:16`, `1.91:1`, etc.
   - Use numeric ratios only, no text labels.
 - **Scope:** Single-file per invocation; batching via shell loops.
-- **CLI:** Conceptually, `imagepro info <file> [options]` and same for `resize` (positional path), not `--input`.
+- **CLI:** Conceptually, `imgpro info <file> [options]` and same for `resize` (positional path), not `--input`.
 
 ---
 
@@ -380,22 +380,22 @@ From your answers, we now have:
 There’s a small tension I want to resolve explicitly:
 
 - **Current code & README:**  
-  `imagepro.py resize --width ... --input photo.jpg` (uses `--input`).
+  `imgpro.py resize --width ... --input photo.jpg` (uses `--input`).
 - **New design preference:**  
-  You’d like `imagepro info <file> [options]`, and the same positional `<file>` for `imagepro resize`.
+  You’d like `imgpro info <file> [options]`, and the same positional `<file>` for `imgpro resize`.
 
 You also asked that PRD reflect both:
 
 - The **decisions we’ve made** in this chat, and  
-- The **actual state of the code** in [imagepro.py](cci:7://file:///Users/neil/Repos/cadentdev/imagepro/imagepro.py:0:0-0:0).
+- The **actual state of the code** in [imgpro.py](cci:7://file:///Users/neil/Repos/cadentdev/imagepro/imgpro.py:0:0-0:0).
 
 To avoid misleading future readers, which do you prefer for the **PRD’s CLI sections right now**?
 
 1. **“Current vs Future” split (my default suggestion):**
    - Document **current v1.0 behavior** exactly as implemented:
-     - `imagepro resize --width ... --input <file> [options]`
+     - `imgpro resize --width ... --input <file> [options]`
    - For both `resize` and the new `info` command, add a small **“Future Versions”** bullet:
-     - Plan to support/standardize `imagepro resize <file> [options]` and `imagepro info <file> [options]` with positional `<file>`.
+     - Plan to support/standardize `imgpro resize <file> [options]` and `imgpro info <file> [options]` with positional `<file>`.
 
 2. **Forward-looking only:**
    - Change PRD CLI examples to **positional `<file>`** for both `resize` and `info`, even though `resize` doesn’t support that yet, treating PRD as the “spec for next iteration” rather than current implementation.
@@ -415,12 +415,12 @@ Here’s what I intend to do in [PRD.md](cci:7://file:///Users/neil/Repos/cadent
   - Needs:
     - Quickly see which images are landscape/portrait/square.
     - Know exact aspect ratios and dimensions to comply with IG’s constraints.
-    - Scriptable batch runs (`for img in *.jpg; do imagepro info ...; done`) and CSV/JSON outputs for spreadsheets or databases.
-  - Tool usage: primarily `imagepro info` (sometimes combined with `resize` later).
+    - Scriptable batch runs (`for img in *.jpg; do imgpro info ...; done`) and CSV/JSON outputs for spreadsheets or databases.
+  - Tool usage: primarily `imgpro info` (sometimes combined with `resize` later).
 
 (Existing Web Developer and Content Manager personas remain as-is; I just add this as a third persona.)
 
-### 2. Fix naming: `scale_image` → `imagepro resize`
+### 2. Fix naming: `scale_image` → `imgpro resize`
 
 In section **4.3 Command-Line Interface**, and all examples:
 
@@ -429,16 +429,16 @@ In section **4.3 Command-Line Interface**, and all examples:
   - `scale_image --height ...`  
   - And all subsequent `scale_image` examples
 - With variants of:
-  - Either `python3 imagepro.py resize --width ... --input <file>` (to match current code + README), **or**  
-  - `imagepro resize --width ... <file>` depending on your answer to the CLI question.
+  - Either `python3 imgpro.py resize --width ... --input <file>` (to match current code + README), **or**  
+  - `imgpro resize --width ... <file>` depending on your answer to the CLI question.
 
 Also adjust the surrounding text to refer to the **`resize` subcommand of `imagepro`**, not a standalone `scale_image` binary.
 
-### 3. Add a section for `imagepro info`
+### 3. Add a section for `imgpro info`
 
 Likely as **new subsection under 4.1 or a new 4.6**, e.g.:
 
-#### `4.x Image Metadata Inspection (`imagepro info`)`
+#### `4.x Image Metadata Inspection (`imgpro info`)`
 
 - **Requirement:** Inspect image metadata, orientation, and aspect ratio for a single image.
 - **Acceptance Criteria (high level):**
@@ -475,22 +475,22 @@ Likely as **new subsection under 4.1 or a new 4.6**, e.g.:
 
 - **CLI:**
   - Described according to your choice (option 1 or 2 above), e.g.:
-    - `imagepro info <file> [--json] [--short] [--exif] [--exif-all]`
-    - Or `imagepro info --input <file> ...` with a note about planned positional `<file>`.
+    - `imgpro info <file> [--json] [--short] [--exif] [--exif-all]`
+    - Or `imgpro info --input <file> ...` with a note about planned positional `<file>`.
 
 ### 4. Clarify existing format section vs new behavior
 
 - Keep **4.2.1 Version 1.0 Format Support** scoped to the **`resize` command** (JPEG in/out).
   - I’ll tweak wording slightly if needed so it’s clearly about **resizing output**.
-- In the new `imagepro info` section, explicitly state that its format behavior differs (Pillow-readable only; text output).
+- In the new `imgpro info` section, explicitly state that its format behavior differs (Pillow-readable only; text output).
 
 ### 5. Minor consistency updates
 
 - Ensure references to:
   - Tool name: “ImagePro” / `imagepro`.
-  - Script filename: [imagepro.py](cci:7://file:///Users/neil/Repos/cadentdev/imagepro/imagepro.py:0:0-0:0).
-  - Exit codes: match the ones in [imagepro.py](cci:7://file:///Users/neil/Repos/cadentdev/imagepro/imagepro.py:0:0-0:0) (0,1,2,3,4) and README.
-- Optionally mention `imagepro convert` in the **Future Enhancements** section (7.x) as a planned subcommand, probably under 7.3 Format Support / Conversion.
+  - Script filename: [imgpro.py](cci:7://file:///Users/neil/Repos/cadentdev/imagepro/imgpro.py:0:0-0:0).
+  - Exit codes: match the ones in [imgpro.py](cci:7://file:///Users/neil/Repos/cadentdev/imagepro/imgpro.py:0:0-0:0) (0,1,2,3,4) and README.
+- Optionally mention `imgpro convert` in the **Future Enhancements** section (7.x) as a planned subcommand, probably under 7.3 Format Support / Conversion.
 
 ---
 
@@ -501,7 +501,7 @@ Please let me know your preference on the **CLI representation in the PRD** (opt
 Once you confirm, I’ll apply a concrete patch to [PRD.md](cci:7://file:///Users/neil/Repos/cadentdev/imagepro/PRD.md:0:0-0:0) to:
 
 - Add the Social Media Manager persona.
-- Add the `imagepro info` requirements section.
+- Add the `imgpro info` requirements section.
 - Update `scale_image` → `imagepro` naming and CLI examples.
 - Keep everything aligned with both the current code and our agreed direction.
 
@@ -511,7 +511,7 @@ Let's write the PRD to reflect how we want the code to function (forward-looking
 
 ### Planner Response
 
-I'll update [PRD.md](cci:7://file:///Users/neil/Repos/cadentdev/imagepro/PRD.md:0:0-0:0) to be forward-looking: add the Social Media Manager persona, completely rewrite section 4 so that 4.1 is Image Information (`imagepro info`), 4.2 is Image Resizing, 4.3 is Image Conversion, and update the CLI examples and error handling accordingly. Then I'll add a new Testing & TDD subsection under Non-Functional Requirements that specifies `pytest` and a TDD workflow. After the edits, I’ll briefly summarize how the PRD structure changed.
+I'll update [PRD.md](cci:7://file:///Users/neil/Repos/cadentdev/imagepro/PRD.md:0:0-0:0) to be forward-looking: add the Social Media Manager persona, completely rewrite section 4 so that 4.1 is Image Information (`imgpro info`), 4.2 is Image Resizing, 4.3 is Image Conversion, and update the CLI examples and error handling accordingly. Then I'll add a new Testing & TDD subsection under Non-Functional Requirements that specifies `pytest` and a TDD workflow. After the edits, I’ll briefly summarize how the PRD structure changed.
 
 *Edited relevant file*
 
@@ -543,7 +543,7 @@ Under **3. User Personas**:
   - Focused on platforms like Instagram/TikTok.
   - Needs to know landscape/portrait/square and aspect ratios to meet platform constraints.
   - Comfortable with shell loops.
-  - Uses CSV/JSON reports from `imagepro info` to group/select images for posts and carousels.
+  - Uses CSV/JSON reports from `imgpro info` to group/select images for posts and carousels.
 
 This explicitly encodes your IG use case.
 
@@ -553,12 +553,12 @@ This explicitly encodes your IG use case.
 
 Section 4 is now forward-looking and command-centric:
 
-#### 4.1 Image Information (`imagepro info`)
+#### 4.1 Image Information (`imgpro info`)
 
 Captures the feature we designed:
 
 - **Invocation:**  
-  `imagepro info <file> [options]` (positional `<file>`; no `--input`).
+  `imgpro info <file> [options]` (positional `<file>`; no `--input`).
 
 - **Format support:**
   - Any image format Pillow can open (JPEG, PNG, HEIF/HEIC, some RAW, etc.).
@@ -590,18 +590,18 @@ Captures the feature we designed:
   - `--short`: **CSV** line per file, e.g. ordered fields:
     - `filename,width,height,orientation,ratio_raw,common_ratio,size_kb,creation_date`
   - Example shell usage for CSV:
-    - `for img in *.jpg; do imagepro info "$img" --short >> info.csv; done`
+    - `for img in *.jpg; do imgpro info "$img" --short >> info.csv; done`
 
 This matches all your explicit decisions for `info`.
 
 ---
 
-#### 4.2 Image Resizing (`imagepro resize`)
+#### 4.2 Image Resizing (`imgpro resize`)
 
 Refactored from the earlier resizing requirements, now aligned with the new CLI design:
 
 - **Invocation:**  
-  `imagepro resize <file> [options]` (positional `<file>`).
+  `imgpro resize <file> [options]` (positional `<file>`).
 
 - **Parameters:**
   - `--width <sizes>` or `--height <sizes>` (comma-separated ints, mutually exclusive).
@@ -628,12 +628,12 @@ This reflects the real behavior today, but written in the new positional CLI sty
 
 ---
 
-#### 4.3 Image Conversion (`imagepro convert`)
+#### 4.3 Image Conversion (`imgpro convert`)
 
 High-level future feature spec:
 
 - **Invocation:**  
-  `imagepro convert <source> --format <target_format> [options]`.
+  `imgpro convert <source> --format <target_format> [options]`.
 
 - **Behavior:**
   - Input: any Pillow-openable image.
@@ -654,10 +654,10 @@ Updated to match the new subcommand layout and positional arguments:
 
 - **Basic syntax:**
   ```bash
-  imagepro info <file> [options]
-  imagepro resize <file> --width <sizes> [options]
-  imagepro resize <file> --height <sizes> [options]
-  imagepro convert <source> --format <target_format> [options]
+  imgpro info <file> [options]
+  imgpro resize <file> --width <sizes> [options]
+  imgpro resize <file> --height <sizes> [options]
+  imgpro convert <source> --format <target_format> [options]
   ```
 
 - **Required parameters:**  
@@ -669,7 +669,7 @@ Updated to match the new subcommand layout and positional arguments:
   - `--help`, `--version`.
 
 - **Usage examples:**
-  - `imagepro info photo.jpg`
+  - `imgpro info photo.jpg`
   - CSV loop for info.
   - Resize examples (width/height, quality, output).
   - Batch resize loop.
@@ -724,13 +724,13 @@ Under **5. Non-Functional Requirements**:
 ## Status and next steps
 
 - [PRD.md](cci:7://file:///Users/neil/Repos/cadentdev/imagepro/PRD.md:0:0-0:0) is now **forward-looking** to the design you described:
-  - `imagepro info` as first-class, multi-format, EXIF-aware, with JSON + CSV options.
-  - `imagepro resize` and `imagepro convert` clearly separated.
+  - `imgpro info` as first-class, multi-format, EXIF-aware, with JSON + CSV options.
+  - `imgpro resize` and `imgpro convert` clearly separated.
   - Personas and non-functional requirements aligned with your IG workflow and TDD plans.
 
 Next logical steps (when you’re ready):
 
-- Implement `imagepro info` in code to match this spec (probably TDD-first with pytest).
+- Implement `imgpro info` in code to match this spec (probably TDD-first with pytest).
 - Gradually refactor `resize` to support positional `<file>` while maintaining backwards compatibility with `--input` during a transition period, if needed.
 
 *Viewed [PRD.md](file:///Users/neil/Repos/cadentdev/imagepro/PRD.md) *
@@ -741,7 +741,7 @@ Please create a TASKS.md file in the repo's root that describes the next steps w
 
 ### Planner Response
 
-I’ll add a `TASKS.md` in the repo root that captures concrete next steps for implementing `imagepro info`, aligning `resize` with the new CLI, preparing for `convert`, and setting up pytest/TDD, with pointers back to the relevant sections of [PRD.md](cci:7://file:///Users/neil/Repos/cadentdev/imagepro/PRD.md:0:0-0:0). I’ll first confirm the file doesn’t already exist, then create it.
+I’ll add a `TASKS.md` in the repo root that captures concrete next steps for implementing `imgpro info`, aligning `resize` with the new CLI, preparing for `convert`, and setting up pytest/TDD, with pointers back to the relevant sections of [PRD.md](cci:7://file:///Users/neil/Repos/cadentdev/imagepro/PRD.md:0:0-0:0). I’ll first confirm the file doesn’t already exist, then create it.
 
 *Searched filesystem*
 
@@ -749,7 +749,7 @@ I’ll add a `TASKS.md` in the repo root that captures concrete next steps for i
 
 ### Planner Response
 
-I'll create a new TASKS.md file in the repo root that lists concrete next steps, grouped roughly into: implementing `imagepro info`, aligning `resize`'s CLI and behavior with the new spec, sketching initial `convert` work, and setting up pytest/TDD. I'll keep it concise and reference relevant PRD sections where helpful.
+I'll create a new TASKS.md file in the repo root that lists concrete next steps, grouped roughly into: implementing `imgpro info`, aligning `resize`'s CLI and behavior with the new spec, sketching initial `convert` work, and setting up pytest/TDD. I'll keep it concise and reference relevant PRD sections where helpful.
 
 *Edited relevant file*
 
@@ -761,19 +761,19 @@ I'll create a new TASKS.md file in the repo root that lists concrete next steps,
 
 I’ve created [TASKS.md](cci:7://file:///Users/neil/Repos/cadentdev/imagepro/TASKS.md:0:0-0:0) in the repo root with a concise, PRD-aligned task list. It’s organized as:
 
-- **1. Implement `imagepro info` (PRD 4.1)**  
+- **1. Implement `imgpro info` (PRD 4.1)**  
   - Wire up `info` subcommand with positional `<file>` and flags `--json`, `--short`, `--exif`, `--exif-all`.  
   - Implement pixel metadata, orientation, exact aspect-ratio classification, and EXIF extraction.  
   - Define default, `--json` (JSONL-friendly), and `--short` (CSV) outputs.  
   - Align error handling and exit codes with PRD and existing CLI.
 
-- **2. Align `imagepro resize` with PRD (PRD 4.2)**  
+- **2. Align `imgpro resize` with PRD (PRD 4.2)**  
   - Plan/refactor to support positional `<file>` while considering `--input` compatibility.  
   - Verify behavior (width/height, upscaling, naming, EXIF stripping) matches the spec.  
   - Update [README.md](cci:7://file:///Users/neil/Repos/cadentdev/imagepro/README.md:0:0-0:0) once the CLI is refactored.
 
-- **3. Prepare for `imagepro convert` (PRD 4.3)**  
-  - Design `imagepro convert <source> --format <target_format>`.  
+- **3. Prepare for `imgpro convert` (PRD 4.3)**  
+  - Design `imgpro convert <source> --format <target_format>`.  
   - Decide initial target formats and naming/output-directory behavior.  
   - Mark actual implementation as a later milestone.
 
@@ -798,7 +798,7 @@ Great work! Let me know if you have any additional questions about the project, 
 
 ### Planner Response
 
-I’ll scan the current README to see what’s out of sync with the new PRD and our decisions (especially around subcommands, `imagepro info`, and future `convert`), then I’ll update it so it clearly distinguishes between what’s implemented now and what’s planned. I’ll keep changes minimal and focused on accuracy and clarity.
+I’ll scan the current README to see what’s out of sync with the new PRD and our decisions (especially around subcommands, `imgpro info`, and future `convert`), then I’ll update it so it clearly distinguishes between what’s implemented now and what’s planned. I’ll keep changes minimal and focused on accuracy and clarity.
 
 *Viewed [README.md](file:///Users/neil/Repos/cadentdev/imagepro/README.md) *
 
@@ -822,8 +822,8 @@ Under `## Usage`, I added:
 The existing CLI examples:
 
 ```bash
-python3 imagepro.py resize --width <sizes> --input <file> [options]
-python3 imagepro.py resize --height <sizes> --input <file> [options]
+python3 imgpro.py resize --width <sizes> --input <file> [options]
+python3 imgpro.py resize --height <sizes> --input <file> [options]
 ```
 
 remain unchanged so they still match the current code.
@@ -844,13 +844,13 @@ This keeps README honest about the current state (manual testing) while signalin
 
 ---
 
-### 3. Roadmap: call out `imagepro info` explicitly
+### 3. Roadmap: call out `imgpro info` explicitly
 
 In `## Roadmap → Planned Features` I added:
 
 - A new first bullet:
 
-  - `**v1.0.x**: imagepro info subcommand for image metadata, orientation, aspect ratio, and EXIF inspection with JSON/CSV output.`
+  - `**v1.0.x**: imgpro info subcommand for image metadata, orientation, aspect ratio, and EXIF inspection with JSON/CSV output.`
 
 The rest of the roadmap (v1.1–v2.0) is unchanged and still aligns with PRD.
 

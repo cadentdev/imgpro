@@ -23,7 +23,7 @@ branch with the latest changes.
 ● Bash(git branch -r --sort=-committerdate --format='%(committerdate:short)
       %(refname:short) - %(subject)' | head -20)
   ⎿ 2025-12-05 origin/claude/add-imagepro-info-tests-012rgv4ZnWgs588TpDJ8Ur
-    Ts - Add PR description for imagepro info feature
+    Ts - Add PR description for imgpro info feature
     2025-12-04 origin/HEAD - Add development logs documenting imagepro crea
     … +3 lines (ctrl+o to expand)
 
@@ -137,14 +137,14 @@ we can execute the python code on this workstation
   Let me verify the installation by checking if the main script is
   executable:
 
-● Bash(source venv/bin/activate && python imagepro.py --version)
+● Bash(source venv/bin/activate && python imgpro.py --version)
   ⎿  ImagePro 1.0.0
 
 ● Excellent! The setup is complete. Let me verify the resize command is
   working:
 
-● Bash(source venv/bin/activate && python imagepro.py resize --help)
-  ⎿ usage: imagepro.py resize [-h] [--width WIDTH] [--height HEIGHT] --inpu
+● Bash(source venv/bin/activate && python imgpro.py resize --help)
+  ⎿ usage: imgpro.py resize [-h] [--width WIDTH] [--height HEIGHT] --inpu
     t INPUT
                               [--output OUTPUT] [--quality QUALITY]
     … +13 lines (ctrl+o to expand)
@@ -165,21 +165,21 @@ we can execute the python code on this workstation
   terminal):
   source venv/bin/activate
   2. Run imagepro commands:
-  python imagepro.py resize --width 300,600,900 --input photo.jpg
+  python imgpro.py resize --width 300,600,900 --input photo.jpg
   3. Deactivate when done (optional):
   deactivate
 
   You're all set! The resize command is ready to process images.
 
-> Let's write a sample bash loop that runs `imagepro info` on all the *.png 
+> Let's write a sample bash loop that runs `imgpro info` on all the *.png 
 files in the ~/Pictures directory and outputs the results to STOUT in 
 `--short` format. Please show me the command so I can run it too, and show 
 me the output you see. 
 
 ● Let me first check if the info subcommand is available on this branch:
 
-● Bash(source venv/bin/activate && python imagepro.py info --help)
-  ⎿ usage: imagepro.py info [-h] [--json] [--short] [--exif] [--exif-all] f
+● Bash(source venv/bin/activate && python imgpro.py info --help)
+  ⎿ usage: imgpro.py info [-h] [--json] [--short] [--exif] [--exif-all] f
     ile
     … +12 lines (ctrl+o to expand)
 
@@ -198,13 +198,13 @@ me the output you see.
 
   Command:
   for img in ~/Pictures/*.png; do
-    source venv/bin/activate && python imagepro.py info --short "$img"
+    source venv/bin/activate && python imgpro.py info --short "$img"
   done
 
   Let me run it:
 
 ● Bash(for img in ~/Pictures/*.png; do source venv/bin/activate &&   timeout: 
-      python imagepro.py info --short "$img"; done)                  1m 0s
+      python imgpro.py info --short "$img"; done)                  1m 0s
   ⎿ claude-context-Screenshot_2025-11-08_18-35-37.png,1366,768,landscape,68
     3:384,none,138.59,
     Screenshot_2025-09-08_20-23-49.png,672,96,landscape,7:1,none,5.88,
@@ -245,12 +245,12 @@ to set it up once. Can I write the loop as a single line?
 
   Option 1: Activate venv first, then run the loop
   source venv/bin/activate
-  for img in ~/Pictures/*.png; do python imagepro.py info --short "$img";
+  for img in ~/Pictures/*.png; do python imgpro.py info --short "$img";
   done
 
   Option 2: Everything on one line
   source venv/bin/activate && for img in ~/Pictures/*.png; do python
-  imagepro.py info --short "$img"; done
+  imgpro.py info --short "$img"; done
 
   Both work the same way - you activate the virtual environment once, then
   the loop runs multiple times without re-activating it. This is much more

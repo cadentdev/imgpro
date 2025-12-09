@@ -29,7 +29,7 @@ set -e
 
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-IMAGEPRO="$SCRIPT_DIR/../imagepro.py"
+IMGPRO="$SCRIPT_DIR/../imgpro.py"
 
 # Check arguments
 if [ $# -lt 1 ]; then
@@ -59,9 +59,9 @@ if [ ! -d "$INPUT_DIR" ]; then
     exit 1
 fi
 
-# Check if imagepro.py exists
-if [ ! -f "$IMAGEPRO" ]; then
-    echo "Error: imagepro.py not found at: $IMAGEPRO" >&2
+# Check if imgpro.py exists
+if [ ! -f "$IMGPRO" ]; then
+    echo "Error: imgpro.py not found at: $IMGPRO" >&2
     exit 1
 fi
 
@@ -108,7 +108,7 @@ for img in "$INPUT_DIR"/*; do
     FILENAME=$(basename "$img")
 
     # Run rename with both --ext and --prefix-exif-date
-    OUTPUT=$(python3 "$IMAGEPRO" rename "$img" --ext --prefix-exif-date $OUTPUT_ARG 2>&1) || true
+    OUTPUT=$(python3 "$IMGPRO" rename "$img" --ext --prefix-exif-date $OUTPUT_ARG 2>&1) || true
     EXIT_CODE=$?
 
     if echo "$OUTPUT" | grep -qi "created:"; then

@@ -34,7 +34,7 @@
      drwxr-xr-x  15 neil  staff    480 Nov 18 11:40 ..
      … +16 lines (ctrl+o to expand)
 
-⏺ Read(imagepro.py)
+⏺ Read(imgpro.py)
   ⎿  Read 615 lines
 
 ⏺ Read(PRD.md)
@@ -74,7 +74,7 @@
        197    
        198 -  **Note:** The `pillow-heif` dependency is automatically 
            - registered on import with graceful fallback if unavailable. 
-           - See lines 14-19 in `imagepro.py`.
+           - See lines 14-19 in `imgpro.py`.
        199 -  
        198    Avoid adding new dependencies unless absolutely necessary.
        199 -  
@@ -101,7 +101,7 @@ proceed with writing it to the repo
       for web developers working with static site generators. It provides
      commands for inspecting image metadata and generating multiple
      resolutions for responsive web design.
-     **Main file:** `imagepro.py` (single-file Python script, ~615 lines)
+     **Main file:** `imgpro.py` (single-file Python script, ~615 lines)
      **Current version:** 1.0.0
      … +189 lines (ctrl+o to expand)
 
@@ -193,7 +193,7 @@ rojects/active/mlkb/taiping/tai_ping_socials` -- please take a look at an
 files: @img/tai_ping_socials/ -- note that I removed the `videos/` 
 subdirectory. Please compare the listing of files contained in this local 
 copy with the files listed when we run this command: `for img in 
-*.{DNG,jpeg,JPG,HEIC}; do python3 ~/Repos/cadentdev/imagepro/imagepro.py 
+*.{DNG,jpeg,JPG,HEIC}; do python3 ~/Repos/cadentdev/imagepro/imgpro.py 
 info "$img" --short; done` because it looks like an error (`Error: 
 Unsupported or unreadable image format: IMG_3751.HEIC`) causes our bash loop
  to terminate prematurely 
@@ -203,12 +203,12 @@ Unsupported or unreadable image format: IMG_3751.HEIC`) causes our bash loop
   happening with that specific HEIC file and compare the output.
 
 ⏺ Bash(cd /Users/neil/Repos/cadentdev/imagepro/img/tai_ping_socials && python3
-      ~/Repos/cadentdev/imagepro/imagepro.py info "IMG_3751.HEIC" --short)
+      ~/Repos/cadentdev/imagepro/imgpro.py info "IMG_3751.HEIC" --short)
   ⎿  Error: Exit code 1
      Error: Unsupported or unreadable image format: IMG_3751.HEIC
 
 ⏺ Bash(cd /Users/neil/Repos/cadentdev/imagepro/img/tai_ping_socials && python3
-      ~/Repos/cadentdev/imagepro/imagepro.py info "IMG_3751.HEIC" 2>&1)
+      ~/Repos/cadentdev/imagepro/imgpro.py info "IMG_3751.HEIC" 2>&1)
   ⎿  Error: Exit code 1
      Error: Unsupported or unreadable image format: IMG_3751.HEIC
 
@@ -216,7 +216,7 @@ Unsupported or unreadable image format: IMG_3751.HEIC`) causes our bash loop
   issue or specific to this file:
 
 ⏺ Bash(cd /Users/neil/Repos/cadentdev/imagepro/img/tai_ping_socials && python3
-      ~/Repos/cadentdev/imagepro/imagepro.py info "IMG_3494.HEIC" --short)
+      ~/Repos/cadentdev/imagepro/imgpro.py info "IMG_3494.HEIC" --short)
   ⎿  IMG_3494.HEIC,3024,4032,portrait,3:4,3:4,617.70,2025:10:22 12:30:20
 
 ⏺ Bash(cd /Users/neil/Repos/cadentdev/imagepro/img/tai_ping_socials && file
@@ -241,7 +241,7 @@ Unsupported or unreadable image format: IMG_3751.HEIC`) causes our bash loop
      <string>:1: UserWarning: Unknown feature 'heif'.
 
 ⏺ Bash(for img in *.{DNG,jpeg,JPG,HEIC}; do python3
-      ~/Repos/cadentdev/imagepro/imagepro.py info "$img" --short 2>/dev/null;
+      ~/Repos/cadentdev/imagepro/imgpro.py info "$img" --short 2>/dev/null;
       done | wc -l)
   ⎿  0
 
@@ -260,26 +260,26 @@ Unsupported or unreadable image format: IMG_3751.HEIC`) causes our bash loop
   errors. Let's test with a modified loop:
 
 ⏺ Bash(for img in *.{DNG,jpeg,JPG,HEIC}; do python3
-      ~/Repos/cadentdev/imagepro/imagepro.py info "$img" --short 2>/dev/null ||
+      ~/Repos/cadentdev/imagepro/imgpro.py info "$img" --short 2>/dev/null ||
       true; done | wc -l)
   ⎿  0
 
 ⏺ Bash(for img in *.{DNG,jpeg,JPG,HEIC}; do python3
-      ~/Repos/cadentdev/imagepro/imagepro.py info "$img" --short 2>&1 | head -1;
+      ~/Repos/cadentdev/imagepro/imgpro.py info "$img" --short 2>&1 | head -1;
        done | grep -c "^Error:")
   ⎿  145
 
 ⏺ Wait, that's showing ALL files are producing errors. Let me check what's
   actually happening:
 
-⏺ Bash(python3 ~/Repos/cadentdev/imagepro/imagepro.py info
+⏺ Bash(python3 ~/Repos/cadentdev/imagepro/imgpro.py info
       "01100E9E-F93B-45AF-8BBA-85E6DD4E9065.JPG" --short)
   ⎿ 01100E9E-F93B-45AF-8BBA-85E6DD4E9065.JPG,2048,1536,landscape,4:3,4:3,50
     1.93,2025:10:20 08:32:26
 
 
 ⏺ Bash(ls *.JPG | head -3 | while read img; do python3
-      ~/Repos/cadentdev/imagepro/imagepro.py info "$img" --short; done)
+      ~/Repos/cadentdev/imagepro/imgpro.py info "$img" --short; done)
   ⎿  Error: Exit code 1
      Error: Unsupported or unreadable image format: 
      Error: Unsupported or unreadable image format: 
@@ -300,7 +300,7 @@ Unsupported or unreadable image format: IMG_3751.HEIC`) causes our bash loop
   from the img directory and see where it fails:
 
 ⏺ Bash(bash -c 'count=0; for img in *.{DNG,jpeg,JPG,HEIC}; do ((count++));
-      python3 ~/Repos/cadentdev/imagepro/imagepro.py info "$img" --short || {
+      python3 ~/Repos/cadentdev/imagepro/imgpro.py info "$img" --short || {
       echo "Failed on file…)
   ⎿  IMG_3646.HEIC,3024,4032,portrait,3:4,3:4,534.82,2025:10:24 17:10:18 
      IMG_3648.HEIC,3024,4032,portrait,3:4,3:4,1076.45,2025:10:24 17:55:04
@@ -327,7 +327,7 @@ Unsupported or unreadable image format: IMG_3751.HEIC`) causes our bash loop
   Option 1: Make the loop continue despite errors
 
   for img in *.{DNG,jpeg,JPG,HEIC}; do
-    python3 ~/Repos/cadentdev/imagepro/imagepro.py info "$img" --short
+    python3 ~/Repos/cadentdev/imagepro/imgpro.py info "$img" --short
   2>/dev/null || true
   done > images.csv
 
@@ -340,7 +340,7 @@ Unsupported or unreadable image format: IMG_3751.HEIC`) causes our bash loop
 
 > Let's do both: first, let's see if we can get the loop to continue without
  errors. Then, we can add HEIF support for Pillow. Also, I'd like to add an 
-option to `imagepro info` that outputs the _actual_ image format, not just 
+option to `imgpro info` that outputs the _actual_ image format, not just 
 the one based on the file extension 
 
 ⏺ Great plan! Let's tackle these one by one.
@@ -348,12 +348,12 @@ the one based on the file extension
   1. First, let's fix the loop to continue despite errors
 
 ⏺ Bash(for img in *.{DNG,jpeg,JPG,HEIC}; do python3
-      ~/Repos/cadentdev/imagepro/imagepro.py info "$img" --short 2>/dev/null ||
+      ~/Repos/cadentdev/imagepro/imgpro.py info "$img" --short 2>/dev/null ||
       true; done | wc -l)
   ⎿  0
 
 ⏺ Bash(for img in *.{DNG,jpeg,JPG,HEIC}; do python3
-      ~/Repos/cadentdev/imagepro/imagepro.py info "$img" --short 2>/dev/null ||
+      ~/Repos/cadentdev/imagepro/imgpro.py info "$img" --short 2>/dev/null ||
       true; done > images_new.csv && wc -l imag…)
   ⎿       144 images_new.csv
 
@@ -386,12 +386,12 @@ output file (subtracting one for the mislabeled HEIC file)
   Let's fix the loop to include all variants:
 
 ⏺ Bash(for img in *.{DNG,jpeg,JPG,HEIC,jpg}; do python3
-      ~/Repos/cadentdev/imagepro/imagepro.py info "$img" --short 2>/dev/null ||
+      ~/Repos/cadentdev/imagepro/imgpro.py info "$img" --short 2>/dev/null ||
       true; done | wc -l)
   ⎿  0
 
 ⏺ Bash(for img in *.{DNG,jpeg,JPG,HEIC,jpg}; do python3
-      ~/Repos/cadentdev/imagepro/imagepro.py info "$img" --short 2>/dev/null ||
+      ~/Repos/cadentdev/imagepro/imgpro.py info "$img" --short 2>/dev/null ||
       true; done > images_new.csv && wc -l…)
   ⎿       150 images_new.csv
 
@@ -401,7 +401,7 @@ output file (subtracting one for the mislabeled HEIC file)
   Let's verify which file failed:
 
 ⏺ Bash(for img in *.{DNG,jpeg,JPG,HEIC,jpg}; do python3
-      ~/Repos/cadentdev/imagepro/imagepro.py info "$img" --short 2>&1 >/dev/null
+      ~/Repos/cadentdev/imagepro/imgpro.py info "$img" --short 2>&1 >/dev/null
        | grep -q "Error" && echo "Failed: $…)
   ⎿  Failed:                        
      Failed:
@@ -411,12 +411,12 @@ output file (subtracting one for the mislabeled HEIC file)
 ⏺ That's not showing the filename properly. Let me try a better approach:
 
 ⏺ Bash(for img in *.{DNG,jpeg,JPG,HEIC,jpg}; do python3
-      ~/Repos/cadentdev/imagepro/imagepro.py info "$img" --short 2>&1 | grep -q
+      ~/Repos/cadentdev/imagepro/imgpro.py info "$img" --short 2>&1 | grep -q
       "^Error:" && echo "$img"; done)
   ⎿  (No content)
 
 ⏺ Bash(for img in *.{DNG,jpeg,JPG,HEIC,jpg}; do if ! python3
-      ~/Repos/cadentdev/imagepro/imagepro.py info "$img" --short >/dev/null
+      ~/Repos/cadentdev/imagepro/imgpro.py info "$img" --short >/dev/null
       2>&1; then echo "$img"; fi; done)
   ⎿  IMG_3751.HEIC
 
@@ -429,7 +429,7 @@ output file (subtracting one for the mislabeled HEIC file)
 
   Fixed loop command:
   for img in *.{DNG,jpeg,JPG,HEIC,jpg}; do
-    python3 ~/Repos/cadentdev/imagepro/imagepro.py info "$img" --short
+    python3 ~/Repos/cadentdev/imagepro/imgpro.py info "$img" --short
   2>/dev/null || true
   done > images.csv
 
@@ -443,7 +443,7 @@ output file (subtracting one for the mislabeled HEIC file)
   Part 3: Add image format detection
 
   For detecting the actual image format (not just file extension), we'll
-  need to enhance the imagepro info command. Should I start working on that
+  need to enhance the imgpro info command. Should I start working on that
   enhancement? We could add a flag like --format that shows the actual image
    format detected by Pillow.
 
@@ -507,14 +507,14 @@ heading to add image format detection so we don't forget that later on
   ⎿  Format: HEIF, Size: (3024, 4032)
 
 ⏺ Perfect! The HEIF file opens successfully with pillow-heif. However, we
-  need to register the HEIF opener in our imagepro.py script. Let's update
+  need to register the HEIF opener in our imgpro.py script. Let's update
   it:
 
-⏺ Read(imagepro.py)
+⏺ Read(imgpro.py)
   ⎿  Read 20 lines
 
-⏺ Update(imagepro.py)
-  ⎿  Updated imagepro.py with 7 additions                        
+⏺ Update(imgpro.py)
+  ⎿  Updated imgpro.py with 7 additions                        
        11    import json
        12    import math
        13    
@@ -534,7 +534,7 @@ heading to add image format detection so we don't forget that later on
 ⏺ Perfect! Now let's test if the imagepro script can read the previously
   problematic HEIC file:
 
-⏺ Bash(python3 ~/Repos/cadentdev/imagepro/imagepro.py info IMG_3751.HEIC)
+⏺ Bash(python3 ~/Repos/cadentdev/imagepro/imgpro.py info IMG_3751.HEIC)
   ⎿ File: IMG_3751.HEIC                                                    
     Path: /Users/neil/Repos/cadentdev/imagepro/img/tai_ping_socials/IMG_375
     1.HEIC
@@ -544,26 +544,26 @@ heading to add image format detection so we don't forget that later on
 ⏺ Excellent! Now let's test with the CSV output and verify we can now
   process all 151 files:
 
-⏺ Bash(python3 ~/Repos/cadentdev/imagepro/imagepro.py info IMG_3751.HEIC
+⏺ Bash(python3 ~/Repos/cadentdev/imagepro/imgpro.py info IMG_3751.HEIC
       --short)
   ⎿  IMG_3751.HEIC,3024,4032,portrait,3:4,3:4,838.22,2025:10:17 13:21:35
 
 ⏺ Bash(for img in *.{DNG,jpeg,JPG,HEIC,jpg}; do python3
-      ~/Repos/cadentdev/imagepro/imagepro.py info "$img" --short 2>/dev/null ||
+      ~/Repos/cadentdev/imagepro/imgpro.py info "$img" --short 2>/dev/null ||
       true; done | wc -l)
   ⎿  0
 
 ⏺ Hmm, getting 0 again. Let me check if there are any errors:
 
 ⏺ Bash(for img in *.{DNG,jpeg,JPG,HEIC,jpg}; do if ! python3
-      ~/Repos/cadentdev/imagepro/imagepro.py info "$img" --short >/dev/null
+      ~/Repos/cadentdev/imagepro/imgpro.py info "$img" --short >/dev/null
       2>&1; then echo "Failed: $img"; fi;…)
   ⎿  (No content)
 
 ⏺ Great! No failures. Now let's generate the full CSV:
 
 ⏺ Bash(for img in *.{DNG,jpeg,JPG,HEIC,jpg}; do python3
-      ~/Repos/cadentdev/imagepro/imagepro.py info "$img" --short; done >
+      ~/Repos/cadentdev/imagepro/imgpro.py info "$img" --short; done >
       images_complete.csv && wc -l images_complete…)
   ⎿       151 images_complete.csv
 
@@ -615,7 +615,7 @@ heading to add image format detection so we don't forget that later on
   ✅ Completed successfully:
 
   1. Updated requirements.txt - Added pillow-heif>=0.13.0
-  2. Updated imagepro.py - Added automatic HEIF opener registration with
+  2. Updated imgpro.py - Added automatic HEIF opener registration with
   graceful fallback if not installed
   3. Installed pillow-heif - Version 1.1.1 installed in the venv
   4. Tested with real HEIC file - IMG_3751.HEIC now processes correctly
@@ -635,7 +635,7 @@ heading to add image format detection so we don't forget that later on
   pillow-heif>=0.13.0  ← Added
   pytest>=7.0.0
 
-  imagepro.py:
+  imgpro.py:
   # Register HEIF opener if pillow-heif is available
   try:
       from pillow_heif import register_heif_opener
@@ -901,7 +901,7 @@ heading to add image format detection so we don't forget that later on
 
   1. Updated requirements.txt
     - Added pillow-heif>=0.13.0 dependency
-  2. Updated imagepro.py
+  2. Updated imgpro.py
     - Added automatic HEIF opener registration on import
     - Graceful fallback if pillow-heif is not installed
   3. Added 4 comprehensive tests:
@@ -954,7 +954,7 @@ made in this chat?
   work:
 
 ⏺ Bash(cd /Users/neil/Repos/cadentdev/imagepro/img/tai_ping_socials && python3
-      ~/Repos/cadentdev/imagepro/imagepro.py info IMG_3494.HEIC --json)
+      ~/Repos/cadentdev/imagepro/imgpro.py info IMG_3494.HEIC --json)
   ⎿ {"filename": "IMG_3494.HEIC", "path": "/Users/neil/Repos/cadentdev/imag
     epro/img/tai_ping_socials/IMG_3494.HEIC", "width": 3024, "height": 4032
     , "orientation": "portrait", "ratio_raw": "3:4", "common_ratio": "3:4",
@@ -1266,11 +1266,11 @@ made in this chat?
        132    ```bash
        133 -  # Generate CSV of all images in a directory
        134 -  for img in *.jpg; do
-       135 -    python3 imagepro.py info "$img" --short >> images.csv
+       135 -    python3 imgpro.py info "$img" --short >> images.csv
        133 +  # Generate CSV of all images in a directory
            +   (multiple formats)
        134 +  for img in *.{jpg,jpeg,JPG,JPEG,png,heic,HEIC}; do
-       135 +    python3 imagepro.py info "$img" --short 2>/dev/null >>
+       135 +    python3 imgpro.py info "$img" --short 2>/dev/null >>
            +   images.csv || true
        136    done
        137    ```
@@ -1317,7 +1317,7 @@ made in this chat?
        198    
        199 +  **Note:** The `pillow-heif` dependency is automatically 
            + registered on import with graceful fallback if unavailable. 
-           + See lines 14-19 in `imagepro.py`.
+           + See lines 14-19 in `imgpro.py`.
        200 +  
        201    Avoid adding new dependencies unless absolutely necessary.
        202 +  
@@ -1492,7 +1492,7 @@ the top of README
 ⏺ Now let's add the relevant files. We should exclude the test images and
   generated files:
 
-⏺ Bash(git add CLAUDE.md README.md TASKS.md imagepro.py requirements.txt
+⏺ Bash(git add CLAUDE.md README.md TASKS.md imgpro.py requirements.txt
       tests/test_info_cli.py tests/test_info_helpers.py)
   ⎿  (No content)
 
@@ -1543,7 +1543,7 @@ the top of README
   What's Included in This Branch:
 
   Code Changes:
-  1. ✅ imagepro.py - HEIF opener auto-registration (lines 14-19)
+  1. ✅ imgpro.py - HEIF opener auto-registration (lines 14-19)
   2. ✅ requirements.txt - Added pillow-heif>=0.13.0
 
   Test Changes:

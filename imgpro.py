@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-ImagePro - Command-line tool for responsive image processing
+ImgPro - Command-line tool for responsive image processing
 """
 
 import argparse
@@ -940,13 +940,13 @@ def cmd_convert(args):
 
 
 def main():
-    """Main entry point for imagepro CLI."""
+    """Main entry point for imgpro CLI."""
     parser = argparse.ArgumentParser(
-        description='ImagePro - Command-line tool for responsive image processing',
-        epilog='Use "imagepro.py <command> --help" for more information about a command.'
+        description='ImgPro - Command-line tool for responsive image processing',
+        epilog='Use "imgpro.py <command> --help" for more information about a command.'
     )
 
-    parser.add_argument('--version', '-v', action='version', version=f'ImagePro {__version__}')
+    parser.add_argument('--version', '-v', action='version', version=f'ImgPro {__version__}')
 
     # Create subparsers for different commands
     subparsers = parser.add_subparsers(dest='command', help='Available commands')

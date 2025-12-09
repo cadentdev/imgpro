@@ -1,6 +1,6 @@
 ## Summary
 
-Implemented the `imagepro info` feature using Test-Driven Development, following PRD Section 4.1.
+Implemented the `imgpro info` feature using Test-Driven Development, following PRD Section 4.1.
 
 ## Changes
 
@@ -49,13 +49,13 @@ Implemented the `imagepro info` feature using Test-Driven Development, following
 
 ```bash
 # Default human-readable output
-python imagepro.py info photo.jpg
+python imgpro.py info photo.jpg
 
 # JSON output
-python imagepro.py info photo.jpg --json
+python imgpro.py info photo.jpg --json
 
 # CSV for batch processing
-for img in *.jpg; do python imagepro.py info "$img" --short >> info.csv; done
+for img in *.jpg; do python imgpro.py info "$img" --short >> info.csv; done
 ```
 
 ## Checklist
@@ -70,5 +70,5 @@ for img in *.jpg; do python imagepro.py info "$img" --short >> info.csv; done
 
 ## Related
 
-- Addresses TASKS.md Section 1: "Implement imagepro info"
+- Addresses TASKS.md Section 1: "Implement imgpro info"
 - Implements PRD Section 4.1 completely

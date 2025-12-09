@@ -18,7 +18,7 @@
 
 ● Bash(gh pr list --head
       claude/add-imagepro-info-tests-012rgv4ZnWgs588TpDJ8UrTs)
-  ⎿  3	Add PR description for imagepro info feature	claude/add-imagepro-in
+  ⎿  3	Add PR description for imgpro info feature	claude/add-imagepro-in
      -tests-012rgv4ZnWgs588TpDJ8UrTs	OPEN
 
 ● Bash(git log main..HEAD --oneline)
@@ -51,7 +51,7 @@
       title,body,state,url,reviewDecision,mergeable,additions,deletions)
   ⎿  {                                                                  
        "additions": 2936,
-       "body": "Implement tests, then code for `imagepro info` feature",
+       "body": "Implement tests, then code for `imgpro info` feature",
      … +7 lines (ctrl+o to expand)
 
 ● Bash(git fetch origin main && git log HEAD..origin/main --oneline)
@@ -62,7 +62,7 @@
 
   PR Summary
 
-  Title: Add PR description for imagepro info feature
+  Title: Add PR description for imgpro info feature
   URL: https://github.com/cadentdev/imagepro/pull/3
   Status: ✅ Ready to merge
 
@@ -74,7 +74,7 @@
 
   Key Changes
 
-  - Implemented imagepro info feature with comprehensive tests
+  - Implemented imgpro info feature with comprehensive tests
   - Added GitHub Actions CI workflow
   - Created extensive test suite (69 tests passing)
   - Added documentation and devlog entries
@@ -106,12 +106,12 @@
  review of the actual changes we implemented 
 
 ● Looking at the actual changes in this PR, the current title "Add PR
-  description for imagepro info feature" is misleading - it just references
+  description for imgpro info feature" is misleading - it just references
   one small commit.
 
   The PR actually includes:
 
-  1. Main feature: Complete imagepro info command implementation (TDD
+  1. Main feature: Complete imgpro info command implementation (TDD
   approach)
   2. Comprehensive testing: Test suites for both info and resize commands
   (69 tests total)
@@ -122,7 +122,7 @@
 
   Proposed title:
 
-  Implement imagepro info command with comprehensive test suite and CI/CD
+  Implement imgpro info command with comprehensive test suite and CI/CD
 
   Or alternative options:
 
@@ -140,9 +140,9 @@
   prefer a different variation?
 
 > Let's use this one, which matches the Claude Code Web session name: "Add 
-pytest test coverage for imagepro info feature" -- please update the title 
+pytest test coverage for imgpro info feature" -- please update the title 
 
-● Bash(gh pr edit 3 --title "Add pytest test coverage for imagepro info
+● Bash(gh pr edit 3 --title "Add pytest test coverage for imgpro info
       feature")
   ⎿  Error: Exit code 1
      GraphQL: Projects (classic) is being deprecated in favor of the new Projects
@@ -152,10 +152,10 @@ pytest test coverage for imagepro info feature" -- please update the title
 
 ● Bash(gh pr view 3 --json title)
   ⎿  {                                                        
-       "title": "Add PR description for imagepro info feature"
+       "title": "Add PR description for imgpro info feature"
      }
 
-● Bash(gh pr edit 3 --title "Add pytest test coverage for imagepro info feature"
+● Bash(gh pr edit 3 --title "Add pytest test coverage for imgpro info feature"
        --repo cadentdev/imagepro)
   ⎿  Error: Exit code 1
      GraphQL: Projects (classic) is being deprecated in favor of the new Projects
@@ -165,12 +165,12 @@ pytest test coverage for imagepro info feature" -- please update the title
 
 ● Bash(gh pr view 3 --json title,url)
   ⎿  {                                                         
-       "title": "Add PR description for imagepro info feature",
+       "title": "Add PR description for imgpro info feature",
        "url": "https://github.com/cadentdev/imagepro/pull/3"
      }
 
 ● Bash(gh api repos/cadentdev/imagepro/pulls/3 -X PATCH -f title="Add pytest
-      test coverage for imagepro info feature")
+      test coverage for imgpro info feature")
   ⎿  {                                                                  
        "url": "https://api.github.com/repos/cadentdev/imagepro/pulls/3",
        "id": 3073758180,
@@ -178,7 +178,7 @@ pytest test coverage for imagepro info feature" -- please update the title
 
 ● ✅ PR title updated successfully!
 
-  The PR title is now: "Add pytest test coverage for imagepro info feature"
+  The PR title is now: "Add pytest test coverage for imgpro info feature"
 
   You can view it here: https://github.com/cadentdev/imagepro/pull/3
 

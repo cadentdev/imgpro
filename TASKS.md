@@ -1,4 +1,4 @@
-# ImagePro Task List
+# ImgPro Task List
 
 This document tracks implementation progress based on `PRD.md`.
 
@@ -8,14 +8,14 @@ This document tracks implementation progress based on `PRD.md`.
 
 ## ✅ Completed Tasks
 
-### 1. Implement `imagepro info` (Section 4.1 of PRD)
+### 1. Implement `imgpro info` (Section 4.1 of PRD)
 
 **Status:** Completed via PR #3
 **Test Coverage:** 69/69 tests passing (36 unit + 33 CLI integration)
 
 - [x] Core CLI wiring
-  - [x] Add an `info` subcommand to `imagepro.py`
-  - [x] Use positional `<file>` argument: `imagepro info <file> [options]`
+  - [x] Add an `info` subcommand to `imgpro.py`
+  - [x] Use positional `<file>` argument: `imgpro info <file> [options]`
   - [x] Add flags: `--json`, `--short`, `--exif`, `--exif-all`
 
 - [x] Core behavior
@@ -78,7 +78,7 @@ This document tracks implementation progress based on `PRD.md`.
 
 ## 📋 In Progress / Planned
 
-### 3. Implement `imagepro rename` (Section 4.4 of PRD) - Completed
+### 3. Implement `imgpro rename` (Section 4.4 of PRD) - Completed
 
 > **Status:** Completed in v1.1.0
 > **Depends on:** None
@@ -110,7 +110,7 @@ The `rename` command provides two key features for organizing image files:
   - [x] Support `--output <directory>` option
   - [x] Exit codes: 0=success, 3=not found, 4=cannot read
 
-### 4. Implement `imagepro convert` (Section 4.3 of PRD) - Completed
+### 4. Implement `imgpro convert` (Section 4.3 of PRD) - Completed
 
 > **Status:** Completed in v1.2.0
 > **Depends on:** None
@@ -143,7 +143,7 @@ The `convert` command enables format conversion, primarily HEIC→JPEG.
 > **Status:** Completed in v1.2.0
 > **Depends on:** rename and convert commands
 
-Utility scripts demonstrating batch workflows with imagepro.
+Utility scripts demonstrating batch workflows with imgpro.
 
 - [x] Create `scripts/` directory structure
 - [x] Create `scripts/README.md` with usage examples
@@ -151,7 +151,7 @@ Utility scripts demonstrating batch workflows with imagepro.
 - [x] Script 1: `resize-all.sh`
   - [x] Resize all images in directory to specified width
   - [x] Skip files already smaller than target width
-  - [x] Use `python3 imagepro.py` invocation
+  - [x] Use `python3 imgpro.py` invocation
 
 - [x] Script 2: `organize-by-orientation.sh`
   - [x] Copy images to subdirectories by orientation (landscape/, portrait/, square/)
@@ -171,7 +171,7 @@ Utility scripts demonstrating batch workflows with imagepro.
   - [ ] Create multiple width versions for srcset
   - [ ] Output organized for HTML integration
 
-### 6. Enhanced `imagepro info` Field Selection (Section 4.1 of PRD) - Priority 4
+### 6. Enhanced `imgpro info` Field Selection (Section 4.1 of PRD) - Priority 4
 
 > **Status:** Not started
 > **Depends on:** None
@@ -195,7 +195,7 @@ Add individual field flags for selective metadata output.
   - [ ] Implement `--key-value` output format
   - [ ] Ensure `--json` includes filename
 
-### 7. Align `imagepro resize` with PRD (Section 4.2) - Backlog
+### 7. Align `imgpro resize` with PRD (Section 4.2) - Backlog
 
 > **Note:** Current code uses `--input`; PRD specifies positional `<file>`. Tests are complete but CLI needs refactoring.
 
@@ -273,8 +273,8 @@ Add individual field flags for selective metadata output.
 - ✅ Documentation updates for v1.2.0
 
 **Next Priorities (in order):**
-1. Add field selection to `imagepro info` command
-2. Align `imagepro resize` CLI with PRD (positional file argument)
+1. Add field selection to `imgpro info` command
+2. Align `imgpro resize` CLI with PRD (positional file argument)
 3. Add `--verbose` and `--quiet` modes
 
 **Core Principle:** All file-modifying commands create copies by default (non-destructive).

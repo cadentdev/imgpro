@@ -1,4 +1,4 @@
-"""Unit tests for imagepro convert helper functions."""
+"""Unit tests for imgpro convert helper functions."""
 
 import pytest
 from pathlib import Path
@@ -7,7 +7,7 @@ import io
 
 # Import the helper functions we'll be testing (these don't exist yet - TDD!)
 try:
-    from imagepro import (
+    from imgpro import (
         get_target_extension,
         is_supported_output_format,
         convert_image,
