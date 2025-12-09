@@ -1,7 +1,7 @@
 # Product Requirements Document: Responsive Image Resizer
 
-**Version:** 1.0  
-**Date:** November 12, 2024  
+**Version:** 1.2
+**Date:** December 6, 2025
 **Status:** Draft  
 
 ---
@@ -28,6 +28,14 @@ Generate thumbnail and full-resolution variants of images for lightbox galleries
 - GUI or web interface (covered in separate PRD section)
 - Advanced image manipulation (filters, effects, compositing)
 - Cloud storage integration
+
+### Core Principle: Non-Destructive by Default
+All commands that modify or transform images create copies by default, preserving the original file. This ensures:
+- User data is never accidentally destroyed
+- Easy comparison between original and processed files
+- Safe batch processing without risk of data loss
+
+Future versions may add an `--in-place` option to override this behavior for users who explicitly want to modify originals.
 
 ---
 
@@ -94,6 +102,20 @@ Generate thumbnail and full-resolution variants of images for lightbox galleries
         - `filename,width,height,orientation,ratio_raw,common_ratio,size_kb,creation_date`
       - Designed for use with shell loops for quick CSV generation, for example:
         - `for img in *.jpg; do imagepro info "$img" --short >> info.csv; done`
+  - **Custom field selection:**
+    - Individual field flags allow selective output of specific metadata:
+      - `--width` or `-w`: Output only width value
+      - `--height` or `-h`: Output only height value
+      - `--format`: Output only file format
+      - `--aspect-ratio`: Output only aspect ratio
+      - `--orientation`: Output only orientation
+    - When multiple field flags are combined, values are space-separated by default.
+    - Field selection can be combined with output format flags:
+      - Default: space-separated values (e.g., `1920 1080 JPEG`)
+      - `--csv`: comma-separated values (e.g., `1920,1080,JPEG`)
+      - `--json`: JSON object with field names (e.g., `{"width": 1920, "height": 1080, "format": "JPEG", "filename": "photo.jpg"}`)
+      - `--key-value`: key-value pairs (e.g., `width: 1920, height: 1080, format: JPEG`)
+    - JSON output always includes `filename` for identification.
   - **Format support:**
     - `imagepro info` must support **any image format that the installed Pillow build can open**, including but not limited to JPEG, PNG, HEIF/HEIC, and certain RAW formats.
     - Non-image files and unsupported formats (e.g., MP4) must fail with a clear error and non-zero exit code.
@@ -140,34 +162,83 @@ Generate thumbnail and full-resolution variants of images for lightbox galleries
 ### 4.3 Image Conversion (`imagepro convert`)
 
 - **Requirement:** Convert images between Pillow-supported formats for web and social media workflows.
-- **Acceptance Criteria (initial high-level):**
+- **Primary Use Case:** Converting HEIC/HEIF images (from iPhone) to JPEG for web compatibility.
+- **Acceptance Criteria:**
   - **Invocation:**
     - Support subcommand syntax: `imagepro convert <source> --format <target_format> [options]`.
     - `<source>` is a required positional argument referring to the input image file.
     - `--format` is a required option specifying the desired output format (e.g., `jpeg`, `png`, `webp`).
   - **Format support:**
-    - Accept any image format that Pillow can open as input.
-    - Support at least JPEG and PNG as output formats in the initial version, with a clear path to extend to WebP, AVIF, and others.
+    - Accept any image format that Pillow can open as input (including HEIF/HEIC with `pillow-heif`).
+    - Support JPEG, PNG, and WebP as output formats (v1.2+), with a clear path to extend to AVIF and others.
     - Provide meaningful errors for unsupported target formats.
   - **Output behavior:**
-    - By default, write converted files alongside the source image or to a specified `--output` directory.
-    - Use sensible naming conventions such as `{basename}.{target_ext}` or allow an explicit `--output` path.
+    - By default, create converted files in a `./converted/` directory (non-destructive).
+    - Support `--output <directory>` to specify a custom output directory.
+    - Use naming convention: `{basename}.{target_ext}` (e.g., `photo.heic` → `photo.jpg`).
+    - If output file already exists, overwrite with warning message.
+  - **EXIF metadata handling:**
+    - **Default behavior:** Preserve EXIF metadata in converted output.
+    - `--strip-exif` flag: Remove all EXIF metadata from output (useful for privacy or web optimization).
+    - Note: Some target formats may not support all EXIF fields; preserve what is compatible.
+  - **Quality control:**
+    - Support `--quality <1-100>` for lossy formats (JPEG, WebP).
+    - Default quality is 90.
   - **Relationship to resizing:**
     - `convert` focuses on format and encoding.
     - `resize` focuses on dimensions and quality.
     - Future versions may compose both behaviors (e.g., resize and convert in one step), but initial implementations treat them as separate commands.
 
-### 4.4 Command-Line Interface
+### 4.4 File Renaming (`imagepro rename`)
 
-#### 4.4.1 Basic Syntax
+- **Requirement:** Rename image files based on actual file format or EXIF metadata for better organization.
+- **Primary Use Cases:**
+  - Fix mismatched file extensions (e.g., `.HEIC` files that are actually JPEG)
+  - Add EXIF date prefixes for chronological sorting by filename
+- **Acceptance Criteria:**
+  - **Invocation:**
+    - Support subcommand syntax: `imagepro rename <file> [options]`.
+    - `<file>` is a required positional argument referring to the image file.
+    - At least one action flag is required: `--ext` or `--prefix-exif-date`.
+  - **Extension correction (`--ext`):**
+    - Read the actual image format from file content (not extension).
+    - Create a copy with the corrected, lowercase extension.
+    - Extension mapping: JPEG → `.jpg`, PNG → `.png`, HEIF → `.heic`, etc.
+    - Lowercase is the default (internet-friendly for URLs).
+    - Example: `photo.HEIC` (actually JPEG) → `photo.jpg`
+    - Example: `image.HEIC` (actually HEIC) → `image.heic`
+  - **EXIF date prefix (`--prefix-exif-date`):**
+    - Extract `DateTimeOriginal` from EXIF metadata.
+    - Prepend ISO-formatted date/time to filename.
+    - Use format: `YYYY-MM-DDTHHMMSS_` (no colons, macOS-safe).
+    - Example: `photo.jpg` → `2023-12-15T142305_photo.jpg`
+    - If no EXIF date exists: skip file with warning message, exit successfully.
+  - **Combined flags:**
+    - `--ext` and `--prefix-exif-date` can be used together.
+    - Both transformations applied to filename before creating the copy.
+    - Example: `photo.HEIC` (JPEG, taken 2023-12-15 14:23:05) → `2023-12-15T142305_photo.jpg`
+  - **Output behavior:**
+    - **Default:** Create a copy with the new filename (non-destructive).
+    - Output to same directory as source file by default.
+    - Support `--output <directory>` for custom output location.
+  - **Error handling:**
+    - File not found → exit code 3.
+    - Cannot read image format → exit code 4.
+    - No EXIF date with `--prefix-exif-date` → warning, skip file, exit code 0.
+
+### 4.5 Command-Line Interface
+
+#### 4.5.1 Basic Syntax
 ```bash
 imagepro info <file> [options]
 imagepro resize <file> --width <sizes> [options]
 imagepro resize <file> --height <sizes> [options]
 imagepro convert <source> --format <target_format> [options]
+imagepro rename <file> --ext [options]
+imagepro rename <file> --prefix-exif-date [options]
 ```
 
-#### 4.4.2 Required Parameters
+#### 4.5.2 Required Parameters
 
 - **`imagepro info`**
   - `<file>`: path to source image file (positional, required).
@@ -182,17 +253,27 @@ imagepro convert <source> --format <target_format> [options]
   - `<source>`: path to source image file (positional, required).
   - `--format <target_format>`: desired output format (e.g., `jpeg`, `png`, `webp`).
 
-#### 4.4.3 Optional Parameters
+- **`imagepro rename`**
+  - `<file>`: path to source image file (positional, required).
+  - At least one of: `--ext` or `--prefix-exif-date`.
+
+#### 4.5.3 Optional Parameters
 
 - `--quality <1-100>` (default: 90) – for JPEG output (resize/convert).
-- `--output <directory>` (default: `./resized/` for resize) – output directory.
+- `--output <directory>` (default: `./resized/` for resize, `./converted/` for convert) – output directory.
+- `--strip-exif` (convert, rename) – remove EXIF metadata from output.
 - `--json` (info) – output metadata as JSON.
 - `--short` (info) – output a single CSV line of key fields.
+- `--csv` (info with field selection) – output comma-separated values.
+- `--key-value` (info with field selection) – output key-value pairs.
+- `-w` / `--width`, `-h` / `--height`, `--format`, `--aspect-ratio`, `--orientation` (info) – select specific fields.
 - `--exif` / `--exif-all` (info) – include curated or full EXIF metadata.
+- `--ext` (rename) – correct file extension based on actual format.
+- `--prefix-exif-date` (rename) – prepend EXIF date to filename.
 - `--help` / `-h` – display usage information.
 - `--version` / `-v` – display version number.
 
-#### 4.4.4 Usage Examples
+#### 4.5.4 Usage Examples
 ```bash
 # Inspect image information for a single file (human-readable)
 imagepro info photo.jpg
@@ -221,11 +302,38 @@ imagepro convert photo.jpg --format png
 
 # Convert and organize outputs in a specific directory
 imagepro convert photo.jpg --format webp --output ./converted/
+
+# Convert HEIC to JPEG, stripping EXIF for privacy
+imagepro convert photo.heic --format jpeg --strip-exif
+
+# Fix mismatched extension (e.g., .HEIC file that's actually JPEG)
+imagepro rename photo.HEIC --ext
+# Result: photo.jpg (in same directory)
+
+# Add EXIF date prefix for chronological sorting
+imagepro rename photo.jpg --prefix-exif-date
+# Result: 2023-12-15T142305_photo.jpg
+
+# Combine extension fix and date prefix
+imagepro rename photo.HEIC --ext --prefix-exif-date
+# Result: 2023-12-15T142305_photo.jpg
+
+# Get only specific fields from image info
+imagepro info photo.jpg --width --height
+# Result: 1920 1080
+
+imagepro info photo.jpg -w -h --format --json
+# Result: {"width": 1920, "height": 1080, "format": "JPEG", "filename": "photo.jpg"}
+
+# Batch rename with extension fix
+for img in *.HEIC; do
+  imagepro rename "$img" --ext || true
+done
 ```
 
-### 4.5 Error Handling
+### 4.6 Error Handling
 
-#### 4.5.1 Input Validation Errors
+#### 4.6.1 Input Validation Errors
 - **Common (all commands):**
   - Missing required parameters → exit with error message and usage hint.
   - Invalid file path → `Error: File not found: <path>`.
@@ -236,13 +344,13 @@ imagepro convert photo.jpg --format webp --output ./converted/
   - Invalid quality value → `Error: Quality must be between 1-100`.
   - Both width and height specified → `Error: Cannot specify both --width and --height`.
 
-#### 4.5.2 Processing Errors
+#### 4.6.2 Processing Errors
 - Corrupt image file → `Error: Cannot read image: <file>`.
 - Permission denied → `Error: Cannot write to output directory: <path>`.
 - Disk space issues → `Error: Insufficient disk space`.
 - All sizes skipped (upscaling) in `resize` → warning, exit successfully with message.
 
-#### 4.5.3 Error Behavior
+#### 4.6.3 Error Behavior
 - Exit with non-zero status code on errors.
 - Print errors to stderr.
 - Print normal output to stdout.
@@ -250,15 +358,15 @@ imagepro convert photo.jpg --format webp --output ./converted/
 
 ---
 
-### 4.6 Output & Feedback
+### 4.7 Output & Feedback
 
-#### 4.6.1 Standard Output
+#### 4.7.1 Standard Output
 - Summary of operations performed.
 - For `resize` and `convert`: list of created files with dimensions and file sizes.
 - For `info`: summary of image metadata (dimensions, orientation, aspect ratio, EXIF summary).
 - Warnings for skipped sizes or other non-fatal issues.
 
-#### 4.6.2 Example Output (Resize)
+#### 4.7.2 Example Output (Resize)
 ```
 Processing: photo.jpg (2400x1600)
 Output directory: ./resized/
@@ -271,12 +379,12 @@ Output directory: ./resized/
 Successfully created 4 images from photo.jpg
 ```
 
-#### 4.6.3 Verbose Mode (Future)
+#### 4.7.3 Verbose Mode (Future)
 - `--verbose` flag for detailed processing information.
 - Show processing time per image.
 - Display compression ratios.
 
-#### 4.6.4 Quiet Mode (Future)
+#### 4.7.4 Quiet Mode (Future)
 - `--quiet` flag to suppress all output except errors.
 - Useful for scripting and automation.
 
@@ -483,4 +591,5 @@ Successfully created 4 images from photo.jpg
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0 | 2024-11-12 | Initial | First draft based on requirements gathering |
+| 1.2 | 2025-12-06 | Update | Added rename command (4.4), enhanced convert (4.3), info field selection, core non-destructive principle |
 

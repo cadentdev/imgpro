@@ -6,10 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ImagePro is a Python CLI tool for responsive image processing, designed for web developers working with static site generators. It provides commands for inspecting image metadata and generating multiple resolutions for responsive web design.
 
-**Main file:** `imagepro.py` (single-file Python script, ~615 lines)
-**Current version:** 1.0.0
+**Main file:** `imagepro.py` (single-file Python script, ~621 lines)
+**Current version:** 1.1.0
 **Python requirement:** 3.8+
-**Primary dependency:** Pillow (PIL)
+**Primary dependency:** Pillow (PIL), pillow-heif (for HEIF/HEIC support)
 
 ## Development Commands
 

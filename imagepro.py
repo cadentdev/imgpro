@@ -7,9 +7,11 @@ import argparse
 import sys
 from pathlib import Path
 from PIL import Image
+from PIL import ImageCms
 import os
 import json
 import math
+import io
 
 # Register HEIF opener if pillow-heif is available
 try:
@@ -19,7 +21,152 @@ except ImportError:
     pass  # pillow-heif not installed, HEIF support unavailable
 
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
+
+# Supported output formats for convert command
+SUPPORTED_OUTPUT_FORMATS = {
+    'jpeg': '.jpg',
+    'jpg': '.jpg',
+    'png': '.png',
+    'webp': '.webp',
+}
+
+
+def is_supported_output_format(format_str):
+    """
+    Check if a format is supported for output conversion.
+
+    Args:
+        format_str: Format name (e.g., "jpeg", "png")
+
+    Returns:
+        bool: True if supported, False otherwise
+    """
+    return format_str.lower() in SUPPORTED_OUTPUT_FORMATS
+
+
+def get_target_extension(format_str):
+    """
+    Get the file extension for a target format.
+
+    Args:
+        format_str: Format name (e.g., "jpeg", "png")
+
+    Returns:
+        String: Extension with dot (e.g., ".jpg") or None if unsupported
+    """
+    return SUPPORTED_OUTPUT_FORMATS.get(format_str.lower())
+
+
+def convert_to_srgb(img):
+    """
+    Convert image to sRGB color profile if it has a different profile.
+
+    Args:
+        img: PIL Image object
+
+    Returns:
+        PIL Image object in sRGB color space
+    """
+    try:
+        # Check if image has an ICC profile
+        icc_profile = img.info.get('icc_profile')
+        if icc_profile:
+            # Create profile objects
+            src_profile = ImageCms.ImageCmsProfile(io.BytesIO(icc_profile))
+            srgb_profile = ImageCms.createProfile('sRGB')
+
+            # Convert to sRGB
+            img = ImageCms.profileToProfile(
+                img, src_profile, srgb_profile,
+                outputMode='RGB' if img.mode == 'RGB' else img.mode
+            )
+    except Exception:
+        # If conversion fails, just return the original image
+        pass
+    return img
+
+
+def convert_image(source_path, output_path, target_format, quality=80, strip_exif=False, convert_to_srgb_profile=True):
+    """
+    Convert an image to a different format.
+
+    Args:
+        source_path: Path to source image
+        output_path: Path for output image
+        target_format: Target format (e.g., "jpeg", "png")
+        quality: JPEG quality 1-100 (default: 80)
+        strip_exif: If True, strip EXIF metadata from output
+        convert_to_srgb_profile: If True, convert to sRGB color profile (default: True)
+
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    try:
+        source_path = Path(source_path)
+        output_path = Path(output_path)
+
+        with Image.open(source_path) as img:
+            # Get EXIF data if we need to preserve it
+            exif_data = None
+            if not strip_exif:
+                try:
+                    exif_data = img.getexif()
+                except Exception:
+                    exif_data = None
+
+            # Convert to sRGB if requested
+            if convert_to_srgb_profile:
+                img = convert_to_srgb(img)
+
+            # Handle color mode conversion for JPEG output
+            if target_format.lower() in ('jpeg', 'jpg'):
+                if img.mode in ('RGBA', 'LA', 'P'):
+                    # Convert with white background for transparency
+                    if img.mode == 'P':
+                        img = img.convert('RGBA')
+                    background = Image.new('RGB', img.size, (255, 255, 255))
+                    if img.mode in ('RGBA', 'LA'):
+                        # Handle alpha channel
+                        if img.mode == 'LA':
+                            img = img.convert('RGBA')
+                        background.paste(img, mask=img.split()[-1])
+                        img = background
+                    else:
+                        img = img.convert('RGB')
+                elif img.mode != 'RGB':
+                    img = img.convert('RGB')
+
+            # Prepare save arguments
+            save_kwargs = {}
+            if target_format.lower() in ('jpeg', 'jpg'):
+                save_kwargs['quality'] = quality
+                save_kwargs['format'] = 'JPEG'
+            elif target_format.lower() == 'png':
+                save_kwargs['format'] = 'PNG'
+            elif target_format.lower() == 'webp':
+                save_kwargs['quality'] = quality
+                save_kwargs['format'] = 'WEBP'
+
+            # Add EXIF if preserving
+            if exif_data and not strip_exif and target_format.lower() in ('jpeg', 'jpg'):
+                save_kwargs['exif'] = exif_data
+
+            # Embed sRGB ICC profile for better compatibility
+            if convert_to_srgb_profile:
+                srgb_profile = ImageCms.createProfile('sRGB')
+                save_kwargs['icc_profile'] = ImageCms.ImageCmsProfile(srgb_profile).tobytes()
+
+            # Ensure output directory exists
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # Save the image
+            img.save(output_path, **save_kwargs)
+
+        return True
+
+    except Exception:
+        return False
 
 
 def parse_sizes(size_str):
@@ -179,6 +326,135 @@ def format_exif_curated(exif_dict):
         curated['resolution_unit'] = exif_dict['ResolutionUnit']
 
     return curated
+
+
+def get_format_extension(format_str):
+    """
+    Map Pillow format name to lowercase file extension.
+
+    Args:
+        format_str: Pillow format string (e.g., "JPEG", "PNG", "HEIF")
+
+    Returns:
+        String: lowercase extension with dot (e.g., ".jpg", ".png", ".heic")
+    """
+    # Normalize input to uppercase
+    format_upper = format_str.upper()
+
+    # Map common formats to preferred extensions
+    format_map = {
+        "JPEG": ".jpg",
+        "PNG": ".png",
+        "HEIF": ".heic",
+        "GIF": ".gif",
+        "WEBP": ".webp",
+        "TIFF": ".tiff",
+        "BMP": ".bmp",
+        "ICO": ".ico",
+        "PPM": ".ppm",
+        "DNG": ".dng",
+    }
+
+    return format_map.get(format_upper, f".{format_str.lower()}")
+
+
+def format_exif_date_prefix(exif_date_str):
+    """
+    Convert EXIF date string to filename-safe prefix.
+
+    Args:
+        exif_date_str: EXIF format date string "YYYY:MM:DD HH:MM:SS"
+
+    Returns:
+        String: Filename prefix "YYYY-MM-DDTHHMMSS_" or None if invalid
+    """
+    if not exif_date_str:
+        return None
+
+    try:
+        # EXIF format: "YYYY:MM:DD HH:MM:SS"
+        # Target format: "YYYY-MM-DDTHHMMSS_"
+        parts = exif_date_str.split(' ')
+        if len(parts) != 2:
+            return None
+
+        date_part = parts[0]
+        time_part = parts[1]
+
+        # Validate date format: must be YYYY:MM:DD
+        date_components = date_part.split(':')
+        if len(date_components) != 3:
+            return None
+        # Check that all components are numeric
+        for comp in date_components:
+            if not comp.isdigit():
+                return None
+
+        # Validate time format: must be HH:MM:SS
+        time_components = time_part.split(':')
+        if len(time_components) != 3:
+            return None
+        for comp in time_components:
+            if not comp.isdigit():
+                return None
+
+        formatted_date = date_part.replace(':', '-')  # YYYY:MM:DD -> YYYY-MM-DD
+        formatted_time = time_part.replace(':', '')   # HH:MM:SS -> HHMMSS
+
+        return f"{formatted_date}T{formatted_time}_"
+    except Exception:
+        return None
+
+
+def build_renamed_filename(original, ext=None, date_prefix=None):
+    """
+    Build a new filename with optional extension change and date prefix.
+
+    Args:
+        original: Original filename (string or Path)
+        ext: New extension (e.g., ".jpg") or None to keep original
+        date_prefix: Date prefix to prepend (e.g., "2024-11-12T143000_") or None
+
+    Returns:
+        String: New filename
+    """
+    # Handle Path objects
+    if isinstance(original, Path):
+        original = original.name
+
+    # Get basename without extension
+    path = Path(original)
+    stem = path.stem
+    original_ext = path.suffix
+
+    # Use new extension or keep original
+    new_ext = ext if ext is not None else original_ext
+
+    # Build new filename
+    new_name = stem + new_ext
+
+    # Add date prefix if provided
+    if date_prefix:
+        new_name = date_prefix + new_name
+
+    return new_name
+
+
+def get_image_format(filepath):
+    """
+    Get the actual image format from file content (not extension).
+
+    Args:
+        filepath: Path to image file
+
+    Returns:
+        String: Pillow format name (e.g., "JPEG", "PNG") or None if can't read
+    """
+    try:
+        with Image.open(filepath) as img:
+            return img.format
+    except Exception:
+        return None
 
 
 def get_image_info(filepath):
@@ -515,6 +791,154 @@ def cmd_resize(args):
         sys.exit(0)
 
 
+def cmd_rename(args):
+    """Handle the rename subcommand."""
+    import shutil
+
+    input_path = Path(args.file)
+
+    # Check if file exists
+    if not input_path.exists():
+        print(f"Error: File not found: {input_path}", file=sys.stderr)
+        sys.exit(3)
+
+    # Check if at least one action flag is provided
+    if not args.ext and not args.prefix_exif_date:
+        print("Error: At least one action flag (--ext or --prefix-exif-date) is required",
+              file=sys.stderr)
+        sys.exit(2)
+
+    # Try to read the image format
+    image_format = get_image_format(input_path)
+    if image_format is None:
+        print(f"Error: Cannot read image: {input_path}", file=sys.stderr)
+        sys.exit(4)
+
+    # Determine new extension if --ext flag is set
+    new_ext = None
+    if args.ext:
+        new_ext = get_format_extension(image_format)
+
+    # Determine date prefix if --prefix-exif-date flag is set
+    date_prefix = None
+    if args.prefix_exif_date:
+        # Extract EXIF data
+        exif_data = extract_exif_data(input_path)
+        curated = format_exif_curated(exif_data)
+
+        if curated and 'date_taken' in curated:
+            date_prefix = format_exif_date_prefix(curated['date_taken'])
+        else:
+            # No EXIF date - skip with warning
+            print(f"Warning: No EXIF date found in {input_path.name}, skipping",
+                  file=sys.stderr)
+            # If only --prefix-exif-date was requested, exit successfully
+            if not args.ext:
+                sys.exit(0)
+            # Otherwise continue with just the extension change
+
+    # Build new filename
+    new_filename = build_renamed_filename(
+        input_path.name,
+        ext=new_ext,
+        date_prefix=date_prefix
+    )
+
+    # Determine output directory
+    if args.output:
+        output_dir = Path(args.output)
+        # Create directory if it doesn't exist
+        output_dir.mkdir(parents=True, exist_ok=True)
+    else:
+        output_dir = input_path.parent
+
+    # Build output path
+    output_path = output_dir / new_filename
+
+    # Check if source and destination are the same
+    if input_path.resolve() == output_path.resolve():
+        # Nothing to do - file already has correct name
+        print(f"No change needed: {input_path.name}")
+        sys.exit(0)
+
+    # Handle case-insensitive filesystems (macOS, Windows)
+    # If the paths differ only by case, we need to use a temp file
+    try:
+        if output_path.exists() and os.path.samefile(input_path, output_path):
+            # Same file on case-insensitive filesystem - rename via temp file
+            import tempfile
+            temp_path = output_path.parent / f".tmp_{new_filename}"
+            shutil.copy2(input_path, temp_path)
+            os.remove(input_path)
+            shutil.move(str(temp_path), str(output_path))
+            print(f"Created: {output_path}")
+            return
+    except OSError:
+        pass  # Files are different, proceed normally
+
+    # Copy the file (non-destructive)
+    shutil.copy2(input_path, output_path)
+
+    # Print success message
+    print(f"Created: {output_path}")
+
+
+def cmd_convert(args):
+    """Handle the convert subcommand."""
+    input_path = Path(args.file)
+
+    # Check if file exists
+    if not input_path.exists():
+        print(f"Error: File not found: {input_path}", file=sys.stderr)
+        sys.exit(3)
+
+    # Validate format option
+    if not is_supported_output_format(args.format):
+        print(f"Error: Unsupported output format: {args.format}", file=sys.stderr)
+        print(f"Supported formats: {', '.join(sorted(set(SUPPORTED_OUTPUT_FORMATS.keys())))}",
+              file=sys.stderr)
+        sys.exit(2)
+
+    # Validate quality
+    if args.quality < 1 or args.quality > 100:
+        print(f"Error: Quality must be between 1-100, got {args.quality}", file=sys.stderr)
+        sys.exit(2)
+
+    # Try to read the image to verify it's valid
+    image_format = get_image_format(input_path)
+    if image_format is None:
+        print(f"Error: Cannot read image: {input_path}", file=sys.stderr)
+        sys.exit(4)
+
+    # Determine output path
+    output_dir = Path(args.output)
+    target_ext = get_target_extension(args.format)
+    output_filename = input_path.stem + target_ext
+    output_path = output_dir / output_filename
+
+    # Check if output file already exists
+    if output_path.exists():
+        print(f"Warning: Overwriting existing file: {output_path}", file=sys.stderr)
+
+    # Create output directory if needed
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Convert the image
+    success = convert_image(
+        input_path,
+        output_path,
+        args.format,
+        quality=args.quality,
+        strip_exif=args.strip_exif
+    )
+
+    if success:
+        print(f"Created: {output_path}")
+    else:
+        print(f"Error: Failed to convert image", file=sys.stderr)
+        sys.exit(4)
+
+
 def main():
     """Main entry point for imagepro CLI."""
     parser = argparse.ArgumentParser(
@@ -604,6 +1028,76 @@ def main():
     )
 
     resize_parser.set_defaults(func=cmd_resize)
+
+    # Rename command
+    rename_parser = subparsers.add_parser(
+        'rename',
+        help='Rename image files based on format or EXIF data',
+        description='Rename images by correcting extensions or adding EXIF date prefixes'
+    )
+
+    rename_parser.add_argument(
+        'file',
+        help='Path to image file'
+    )
+
+    rename_parser.add_argument(
+        '--ext',
+        action='store_true',
+        help='Correct file extension based on actual image format'
+    )
+
+    rename_parser.add_argument(
+        '--prefix-exif-date',
+        action='store_true',
+        help='Prepend EXIF date to filename (format: YYYY-MM-DDTHHMMSS_)'
+    )
+
+    rename_parser.add_argument(
+        '--output',
+        help='Output directory (default: same as source file)'
+    )
+
+    rename_parser.set_defaults(func=cmd_rename)
+
+    # Convert command
+    convert_parser = subparsers.add_parser(
+        'convert',
+        help='Convert images between formats',
+        description='Convert images to different formats (e.g., HEIC to JPEG)'
+    )
+
+    convert_parser.add_argument(
+        'file',
+        help='Path to source image file'
+    )
+
+    convert_parser.add_argument(
+        '--format', '-f',
+        required=True,
+        help='Target format (jpeg, jpg, png, webp)'
+    )
+
+    convert_parser.add_argument(
+        '--output',
+        default='./converted/',
+        help='Output directory (default: ./converted/)'
+    )
+
+    convert_parser.add_argument(
+        '--quality',
+        type=int,
+        default=80,
+        help='JPEG quality 1-100 (default: 80)'
+    )
+
+    convert_parser.add_argument(
+        '--strip-exif',
+        action='store_true',
+        help='Remove EXIF metadata from output'
+    )
+
+    convert_parser.set_defaults(func=cmd_convert)
 
     # Parse arguments
     args = parser.parse_args()

@@ -2,6 +2,8 @@
 
 This document tracks implementation progress based on `PRD.md`.
 
+**Last Updated:** 2025-12-08
+
 ---
 
 ## ✅ Completed Tasks
@@ -76,7 +78,124 @@ This document tracks implementation progress based on `PRD.md`.
 
 ## 📋 In Progress / Planned
 
-### 3. Align `imagepro resize` with PRD (Section 4.2)
+### 3. Implement `imagepro rename` (Section 4.4 of PRD) - Completed
+
+> **Status:** Completed in v1.1.0
+> **Depends on:** None
+
+The `rename` command provides two key features for organizing image files:
+1. Fix mismatched extensions based on actual file format
+2. Prepend EXIF date/time for chronological sorting
+
+- [x] Write tests first (TDD)
+  - [x] Unit tests for format detection and extension mapping
+  - [x] Unit tests for EXIF date extraction and formatting
+  - [x] Unit tests for filename transformation logic
+  - [x] CLI integration tests for `--ext` flag
+  - [x] CLI integration tests for `--prefix-exif-date` flag
+  - [x] CLI integration tests for combined flags
+  - [x] Tests for missing EXIF date (skip with warning)
+  - [x] Tests for output directory option
+
+- [x] Implement `rename` command
+  - [x] Add `rename` subparser with positional `<file>` argument
+  - [x] Implement `--ext` flag for extension correction
+    - [x] Read actual image format from file content
+    - [x] Map format to lowercase extension (JPEG→.jpg, PNG→.png, HEIF→.heic)
+    - [x] Create copy with corrected extension
+  - [x] Implement `--prefix-exif-date` flag
+    - [x] Extract DateTimeOriginal from EXIF
+    - [x] Format as YYYY-MM-DDTHHMMSS_ (no colons for macOS)
+    - [x] Skip file with warning if no EXIF date
+  - [x] Support `--output <directory>` option
+  - [x] Exit codes: 0=success, 3=not found, 4=cannot read
+
+### 4. Implement `imagepro convert` (Section 4.3 of PRD) - Completed
+
+> **Status:** Completed in v1.2.0
+> **Depends on:** None
+
+The `convert` command enables format conversion, primarily HEIC→JPEG.
+
+- [x] Core implementation complete
+  - [x] Add `convert` subparser with positional `<source>` argument
+  - [x] Implement `--format` option (required: jpeg, png, webp)
+  - [x] Default output to `./converted/` directory
+  - [x] Preserve EXIF by default
+  - [x] Implement `--strip-exif` flag to remove metadata
+  - [x] Support `--quality` option (default: 80)
+  - [x] Handle existing output files (overwrite with warning)
+  - [x] sRGB color profile conversion (automatic)
+  - [x] WebP output format support
+
+- [x] Tests complete (50+ tests)
+  - [x] CLI integration tests for basic conversion
+  - [x] CLI integration tests for `--strip-exif` flag
+  - [x] CLI integration tests for `--quality` option
+  - [x] Tests for output directory and naming
+  - [x] Tests for WebP conversion
+
+- [ ] Future enhancements
+  - [ ] Add `--no-srgb` flag to skip sRGB conversion
+
+### 5. Create Bash Scripts in `scripts/` Directory - Completed
+
+> **Status:** Completed in v1.2.0
+> **Depends on:** rename and convert commands
+
+Utility scripts demonstrating batch workflows with imagepro.
+
+- [x] Create `scripts/` directory structure
+- [x] Create `scripts/README.md` with usage examples
+
+- [x] Script 1: `resize-all.sh`
+  - [x] Resize all images in directory to specified width
+  - [x] Skip files already smaller than target width
+  - [x] Use `python3 imagepro.py` invocation
+
+- [x] Script 2: `organize-by-orientation.sh`
+  - [x] Copy images to subdirectories by orientation (landscape/, portrait/, square/)
+  - [x] Variant: organize by aspect ratio (4x3/, 3x4/, 16x9/, etc.)
+  - [x] Handle directory naming without colons
+
+- [x] Script 3: `rename-all.sh`
+  - [x] Add EXIF date prefix to filenames
+  - [x] Correct file extensions based on actual format
+
+- [x] Script 4: `convert-all.sh`
+  - [x] Convert all images to JPEG with sRGB profile
+  - [x] Configurable quality via environment variable
+  - [x] Force mode to re-convert existing JPEGs
+
+- [ ] Script 5: `generate-responsive-set.sh` (lower priority)
+  - [ ] Create multiple width versions for srcset
+  - [ ] Output organized for HTML integration
+
+### 6. Enhanced `imagepro info` Field Selection (Section 4.1 of PRD) - Priority 4
+
+> **Status:** Not started
+> **Depends on:** None
+
+Add individual field flags for selective metadata output.
+
+- [ ] Write tests first (TDD)
+  - [ ] Tests for individual field flags (-w, -h, --format, etc.)
+  - [ ] Tests for multiple field combination
+  - [ ] Tests for output formats (space-separated, --csv, --json, --key-value)
+  - [ ] Tests for JSON always including filename
+
+- [ ] Implement field selection
+  - [ ] Add `-w`/`--width` flag
+  - [ ] Add `-h`/`--height` flag (note: conflicts with --help, may need adjustment)
+  - [ ] Add `--format` flag
+  - [ ] Add `--aspect-ratio` flag
+  - [ ] Add `--orientation` flag
+  - [ ] Implement space-separated output (default)
+  - [ ] Implement `--csv` output format
+  - [ ] Implement `--key-value` output format
+  - [ ] Ensure `--json` includes filename
+
+### 7. Align `imagepro resize` with PRD (Section 4.2) - Backlog
 
 > **Note:** Current code uses `--input`; PRD specifies positional `<file>`. Tests are complete but CLI needs refactoring.
 
@@ -85,35 +204,15 @@ This document tracks implementation progress based on `PRD.md`.
   - [ ] Keep `--input` working for backwards compatibility (or plan breaking change)
   - [ ] Ensure help text matches PRD style
 
-- [ ] Verify behavior matches spec
-  - [ ] Confirm width/height mutual exclusion (already tested)
-  - [ ] Confirm upscaling prevention (already tested)
-  - [ ] Confirm output directory behavior (already tested)
-  - [ ] Verify EXIF stripping and ICC profile preservation
+- [x] Verify behavior matches spec
+  - [x] Confirm width/height mutual exclusion (tested in test_resize_cli.py)
+  - [x] Confirm upscaling prevention (tested in TestResizeUpscalingPrevention)
+  - [x] Confirm output directory behavior (tested in TestResizeOutputHandling)
+  - [x] Verify EXIF stripping (implemented in resize_image, line 584)
 
 - [ ] Update documentation
   - [ ] Update `README.md` examples to use positional `<file>`
   - [ ] Update help text to match PRD
-
-### 4. Prepare for `imagepro convert` (Section 4.3)
-
-- [ ] Design initial `convert` CLI
-  - [ ] Define subcommand: `imagepro convert <source> --format <target> [options]`
-  - [ ] Decide initial supported formats (at minimum: jpeg, png)
-  - [ ] Design output naming and directory rules
-
-- [ ] Plan implementation
-  - [ ] Identify shared helpers with `resize` and `info`
-  - [ ] Define format conversion strategy
-  - [ ] Plan EXIF handling for different formats
-
-- [ ] Write tests first (TDD)
-  - [ ] Unit tests for format conversion logic
-  - [ ] CLI integration tests for `convert` command
-  - [ ] Test all supported format combinations
-
-- [ ] Implement `convert` command
-  - [ ] Only after `info` and `resize` are fully aligned with PRD
 
 ---
 
@@ -155,18 +254,27 @@ This document tracks implementation progress based on `PRD.md`.
 
 ## 📊 Project Status
 
-**Current Version:** 1.0
-**Test Coverage:** 46% (124 tests)
+**Current Version:** 1.2.0
+**Test Coverage:** ~50% (311 tests)
 - Info command: 100% (69 tests)
 - Resize command: ~95% (55 tests)
+- Convert command: 100% (52 tests)
+- Rename command: 100% (50 tests)
 
 **Completed:**
 - ✅ Info command (full implementation)
 - ✅ Resize command (implementation complete, CLI refactor pending)
+- ✅ Rename command (EXIF date prefix + extension correction)
+- ✅ Convert command (HEIC→JPEG, PNG, WebP with sRGB conversion)
+- ✅ HEIF/HEIC format support via pillow-heif
 - ✅ Comprehensive test suite
 - ✅ CI/CD pipeline
+- ✅ Batch scripts in `scripts/` directory
+- ✅ Documentation updates for v1.2.0
 
-**Next Priorities:**
-1. Refactor resize CLI to use positional arguments
-2. Implement convert command
-3. Add verbose/quiet modes
+**Next Priorities (in order):**
+1. Add field selection to `imagepro info` command
+2. Align `imagepro resize` CLI with PRD (positional file argument)
+3. Add `--verbose` and `--quiet` modes
+
+**Core Principle:** All file-modifying commands create copies by default (non-destructive).
