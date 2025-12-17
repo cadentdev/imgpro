@@ -1,4 +1,4 @@
-# From Bash to Python: Creating the ImagePro PRD
+# From Bash to Python: Creating the ImgPro PRD
 
 
 How we used AI to explore options, make architectural decisions, and create a comprehensive Product Requirements Document before writing any code.
@@ -9,7 +9,7 @@ How we used AI to explore options, make architectural decisions, and create a co
 
 Sometimes the best projects start with a simple question that leads you somewhere completely unexpected. We began by asking our AI assistant about testing tools for a bash script—and ended up creating an entirely new Python application with a comprehensive product roadmap. This article shows how a conversation with an AI coding assistant can help you explore options, challenge assumptions, and make better architectural decisions. You'll see that we didn't march straight toward our goal; instead, we wandered, questioned, and refined our thinking. That exploration process wasn't wasted time—it was essential to understanding what we really needed to build.
 
-This article covers the first two commits in the ImagePro project:
+This article covers the first two commits in the ImgPro project:
 - **Commit 1**: Initial commit (`.gitignore`, `LICENSE`, `README.md`)
 - **Commit 2**: Create PRD (`PRD.md` and chat log documentation)
 
@@ -314,7 +314,7 @@ This process will help you think through your project more clearly and give you 
 
 ## Resources
 
-- **ImagePro Repository**: [github.com/cadentdev/imagepro](https://github.com/cadentdev/imagepro)
+- **ImgPro Repository**: [github.com/cadentdev/imagepro](https://github.com/cadentdev/imagepro)
 - **Pillow Documentation**: [pillow.readthedocs.io](https://pillow.readthedocs.io/)
 - **Windsurf IDE**: [codeium.com/windsurf](https://codeium.com/windsurf)
 - **Git Basics**: Ask your AI assistant to teach you!
@@ -325,4 +325,4 @@ This process will help you think through your project more clearly and give you 
 
 ---
 
-*This article is part of our "Building in Public" series, where we document the entire development process of ImagePro, including the messy parts, the detours, and the lessons learned. We hope it helps you on your own coding journey!*
+*This article is part of our "Building in Public" series, where we document the entire development process of ImgPro, including the messy parts, the detours, and the lessons learned. We hope it helps you on your own coding journey!*

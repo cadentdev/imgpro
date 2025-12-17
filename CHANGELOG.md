@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to ImagePro will be documented in this file.
+All notable changes to ImgPro will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
-- Custom field selection for `imagepro info` command
+- Custom field selection for `imgpro info` command
 - AVIF output format support
 - `--no-srgb` flag for convert command
 - `--verbose` and `--quiet` modes
@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.2.0] - 2025-12-06
 
 ### Added
-- **WebP output format support** for `imagepro convert` command
+- **WebP output format support** for `imgpro convert` command
 - **Batch processing scripts** in `scripts/` directory:
   - `rename-all.sh` - Add EXIF date prefix and correct extensions
   - `convert-all.sh` - Convert images to JPEG with sRGB profile
@@ -57,8 +57,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2025-11-12
 
 ### Added
-- Initial release of ImagePro CLI tool
-- `imagepro info` subcommand for image metadata inspection
+- Initial release of ImgPro CLI tool
+- `imgpro info` subcommand for image metadata inspection
   - Pixel dimensions with EXIF orientation handling
   - Orientation classification (portrait, landscape, square)
   - Aspect ratio calculation using GCD
@@ -67,7 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - EXIF extraction with curated subset (date taken, camera make/model, DPI)
   - Three output formats: default (human-readable), `--json`, `--short` (CSV)
   - `--exif` and `--exif-all` flags for EXIF data display
-- `imagepro resize` subcommand for responsive image generation
+- `imgpro resize` subcommand for responsive image generation
   - Width-based resizing with `--width` option
   - Height-based resizing with `--height` option
   - Aspect ratio preservation
@@ -92,7 +92,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 4: Cannot read/process image
 
 ### Technical Details
-- Single-file architecture (`imagepro.py`)
+- Single-file architecture (`imgpro.py`)
 - Python 3.8+ requirement
 - Pillow dependency for image processing
 - argparse subcommand pattern for CLI routing

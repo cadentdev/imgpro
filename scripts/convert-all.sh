@@ -29,7 +29,7 @@ set -e
 
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-IMAGEPRO="$SCRIPT_DIR/../imagepro.py"
+IMGPRO="$SCRIPT_DIR/../imgpro.py"
 
 # Quality setting (can be overridden via environment variable)
 QUALITY="${QUALITY:-80}"
@@ -67,9 +67,9 @@ if [ ! -d "$INPUT_DIR" ]; then
     exit 1
 fi
 
-# Check if imagepro.py exists
-if [ ! -f "$IMAGEPRO" ]; then
-    echo "Error: imagepro.py not found at: $IMAGEPRO" >&2
+# Check if imgpro.py exists
+if [ ! -f "$IMGPRO" ]; then
+    echo "Error: imgpro.py not found at: $IMGPRO" >&2
     exit 1
 fi
 
@@ -122,7 +122,7 @@ for img in "$INPUT_DIR"/*; do
     esac
 
     # Run convert command
-    OUTPUT=$(python3 "$IMAGEPRO" convert "$img" --format jpeg --output "$OUTPUT_DIR" --quality "$QUALITY" 2>&1) || true
+    OUTPUT=$(python3 "$IMGPRO" convert "$img" --format jpeg --output "$OUTPUT_DIR" --quality "$QUALITY" 2>&1) || true
 
     if echo "$OUTPUT" | grep -qi "created:"; then
         # Successfully converted

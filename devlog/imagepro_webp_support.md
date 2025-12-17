@@ -26,11 +26,11 @@ When all of these updates are complete, the docs are updated, and all tests are 
 
 *Viewed [PRD.md](file:///Users/neil/Repos/cadentdev/imagepro/PRD.md) *
 
-*Viewed [imagepro.py](file:///Users/neil/Repos/cadentdev/imagepro/imagepro.py) *
+*Viewed [imgpro.py](file:///Users/neil/Repos/cadentdev/imagepro/imgpro.py) *
 
 *Updated todo list*
 
-*Viewed [imagepro.py](file:///Users/neil/Repos/cadentdev/imagepro/imagepro.py) *
+*Viewed [imgpro.py](file:///Users/neil/Repos/cadentdev/imagepro/imgpro.py) *
 
 *Viewed [test_convert_cli.py](file:///Users/neil/Repos/cadentdev/imagepro/tests/test_convert_cli.py) *
 
@@ -42,7 +42,7 @@ Now I'll add WebP support to the convert command. First, let me write the tests,
 
 ### Planner Response
 
-Now let me add WebP support to the [imagepro.py](cci:7://file:///Users/neil/Repos/cadentdev/imagepro/imagepro.py:0:0-0:0) file:
+Now let me add WebP support to the [imgpro.py](cci:7://file:///Users/neil/Repos/cadentdev/imagepro/imgpro.py:0:0-0:0) file:
 
 *Edited relevant file*
 
@@ -121,7 +121,7 @@ with tempfile.TemporaryDirectory() as tmpdir:
     img.save(uppercase_jpg, 'JPEG')
     
     import subprocess
-    result = subprocess.run(['python3', 'imagepro.py', 'rename', str(uppercase_jpg), '--ext'],
+    result = subprocess.run(['python3', 'imgpro.py', 'rename', str(uppercase_jpg), '--ext'],
                           capture_output=True, text=True)
     print('Exit code:', result.returncode)
     print('Stdout:', result.stdout)
@@ -132,7 +132,7 @@ with tempfile.TemporaryDirectory() as tmpdir:
 
 The issue is that on macOS with a case-insensitive filesystem, `photo.JPG` and `photo.jpg` are considered the same file. The code checks for this but uses `resolve()` which doesn't help on case-insensitive filesystems. Let me look at the current check:
 
-*Viewed [imagepro.py](file:///Users/neil/Repos/cadentdev/imagepro/imagepro.py) *
+*Viewed [imgpro.py](file:///Users/neil/Repos/cadentdev/imagepro/imgpro.py) *
 
 ### Planner Response
 
@@ -184,7 +184,7 @@ Now let me update the CHANGELOG.md:
 
 Let me verify the version bump worked:
 
-*User accepted the command `source .venv/bin/activate && python3 imagepro.py --version`*
+*User accepted the command `source .venv/bin/activate && python3 imgpro.py --version`*
 
 *Updated todo list*
 
@@ -192,13 +192,13 @@ Let me verify the version bump worked:
 
 # Summary
 
-All tasks completed for **ImagePro v1.2.0**:
+All tasks completed for **ImgPro v1.2.0**:
 
 ## Changes Made
 
 ### 1. WebP Support Added
-- Added `webp` to `SUPPORTED_OUTPUT_FORMATS` in [imagepro.py](cci:7://file:///Users/neil/Repos/cadentdev/imagepro/imagepro.py:0:0-0:0)
-- Updated [convert_image()](cci:1://file:///Users/neil/Repos/cadentdev/imagepro/imagepro.py:89:0-168:20) to handle WebP format with quality setting
+- Added `webp` to `SUPPORTED_OUTPUT_FORMATS` in [imgpro.py](cci:7://file:///Users/neil/Repos/cadentdev/imagepro/imgpro.py:0:0-0:0)
+- Updated [convert_image()](cci:1://file:///Users/neil/Repos/cadentdev/imagepro/imgpro.py:89:0-168:20) to handle WebP format with quality setting
 - Updated CLI help text to include `webp`
 
 ### 2. Tests Added
@@ -220,7 +220,7 @@ All tasks completed for **ImagePro v1.2.0**:
 - Fixed case-insensitive filesystem handling in rename command (macOS/Windows)
 
 ### 6. Version Bumped
-- `__version__` updated to `"1.2.0"` in [imagepro.py](cci:7://file:///Users/neil/Repos/cadentdev/imagepro/imagepro.py:0:0-0:0)
+- `__version__` updated to `"1.2.0"` in [imgpro.py](cci:7://file:///Users/neil/Repos/cadentdev/imagepro/imgpro.py:0:0-0:0)
 
 ## Test Results
 - **311 tests passing** (all green)

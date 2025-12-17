@@ -33,7 +33,7 @@ set -e
 
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-IMAGEPRO="$SCRIPT_DIR/../imagepro.py"
+IMGPRO="$SCRIPT_DIR/../imgpro.py"
 
 # Check arguments
 if [ $# -lt 1 ]; then
@@ -76,9 +76,9 @@ if [ ! -d "$INPUT_DIR" ]; then
     exit 1
 fi
 
-# Check if imagepro.py exists
-if [ ! -f "$IMAGEPRO" ]; then
-    echo "Error: imagepro.py not found at: $IMAGEPRO" >&2
+# Check if imgpro.py exists
+if [ ! -f "$IMGPRO" ]; then
+    echo "Error: imgpro.py not found at: $IMGPRO" >&2
     exit 1
 fi
 
@@ -119,7 +119,7 @@ for img in "$INPUT_DIR"/*; do
     FILENAME=$(basename "$img")
 
     # Get image info as JSON
-    INFO=$(python3 "$IMAGEPRO" info "$img" --json 2>/dev/null) || {
+    INFO=$(python3 "$IMGPRO" info "$img" --json 2>/dev/null) || {
         echo "Warning: Could not read $FILENAME, skipping" >&2
         FAILED=$((FAILED + 1))
         continue

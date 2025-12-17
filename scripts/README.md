@@ -1,6 +1,6 @@
-# ImagePro Batch Scripts
+# ImgPro Batch Scripts
 
-Utility scripts for batch image processing workflows using `imagepro`.
+Utility scripts for batch image processing workflows using `imgpro`.
 
 ## Scripts Overview
 
@@ -16,7 +16,7 @@ Utility scripts for batch image processing workflows using `imagepro`.
 ## Prerequisites
 
 - Python 3.8+ with virtual environment activated
-- ImagePro dependencies installed (`pip install -r requirements.txt`)
+- ImgPro dependencies installed (`pip install -r requirements.txt`)
 
 ```bash
 # Activate virtual environment
@@ -127,7 +127,7 @@ Resize all JPEG images to specified width(s).
 
 ### Notes
 
-- Only processes JPEG files (imagepro resize limitation)
+- Only processes JPEG files (imgpro resize limitation)
 - Skips files already smaller than target width (no upscaling)
 - Output files are named `{basename}_{width}.jpg`
 

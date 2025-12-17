@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-ImagePro is a Python CLI tool for responsive image processing, designed for web developers working with static site generators. It provides commands for inspecting image metadata and generating multiple resolutions for responsive web design.
+ImgPro is a Python CLI tool for responsive image processing, designed for web developers working with static site generators. It provides commands for inspecting image metadata and generating multiple resolutions for responsive web design.
 
-**Main file:** `imagepro.py` (single-file Python script, ~621 lines)
+**Main file:** `imgpro.py` (single-file Python script, ~621 lines)
 **Current version:** 1.1.0
 **Python requirement:** 3.8+
 **Primary dependency:** Pillow (PIL), pillow-heif (for HEIF/HEIC support)
@@ -16,11 +16,11 @@ ImagePro is a Python CLI tool for responsive image processing, designed for web 
 ### Running the Tool
 ```bash
 # Info command - inspect image metadata
-python3 imagepro.py info <file> [--json|--short] [--exif|--exif-all]
+python3 imgpro.py info <file> [--json|--short] [--exif|--exif-all]
 
 # Resize command - generate multiple image sizes
-python3 imagepro.py resize --width <sizes> --input <file> [--quality 90] [--output ./resized/]
-python3 imagepro.py resize --height <sizes> --input <file> [--quality 90] [--output ./resized/]
+python3 imgpro.py resize --width <sizes> --input <file> [--quality 90] [--output ./resized/]
+python3 imgpro.py resize --height <sizes> --input <file> [--quality 90] [--output ./resized/]
 ```
 
 ### Testing
@@ -33,7 +33,7 @@ python -m pytest tests/test_info_cli.py -v
 python -m pytest tests/test_resize_cli.py -v
 
 # Run with coverage
-python -m pytest tests/ --cov=imagepro --cov-report=term-missing
+python -m pytest tests/ --cov=imgpro --cov-report=term-missing
 
 # Run specific test
 python -m pytest tests/test_info_cli.py::TestInfoCommandBasics::test_info_command_exists -v
@@ -47,7 +47,7 @@ python -m pytest tests/test_info_cli.py::TestInfoCommandBasics::test_info_comman
 ## Architecture
 
 ### Single-File Design
-All code lives in `imagepro.py` - there are no separate modules. This keeps the tool simple and portable.
+All code lives in `imgpro.py` - there are no separate modules. This keeps the tool simple and portable.
 
 ### Subcommand Structure
 The CLI uses argparse subparsers for command routing:
@@ -152,7 +152,7 @@ To add a new subcommand (e.g., `convert`):
    - Create `tests/test_<command>_helpers.py` for unit tests
    - Create `tests/test_<command>_cli.py` for CLI integration tests
 
-2. **Create command handler** in `imagepro.py`:
+2. **Create command handler** in `imgpro.py`:
    ```python
    def cmd_convert(args):
        """Handle the convert subcommand."""
@@ -196,7 +196,7 @@ Keep dependencies minimal:
 - **pillow-heif (>=0.13.0):** HEIF/HEIC format support (enables iPhone photo formats)
 - **pytest (>=7.0.0):** Testing framework
 
-**Note:** The `pillow-heif` dependency is automatically registered on import with graceful fallback if unavailable. See lines 14-19 in `imagepro.py`.
+**Note:** The `pillow-heif` dependency is automatically registered on import with graceful fallback if unavailable. See lines 14-19 in `imgpro.py`.
 
 Avoid adding new dependencies unless absolutely necessary.
 
