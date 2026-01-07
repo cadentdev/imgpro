@@ -6,8 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ImgPro is a Python CLI tool for responsive image processing, designed for web developers working with static site generators. It provides commands for inspecting image metadata and generating multiple resolutions for responsive web design.
 
-**Main file:** `imgpro.py` (single-file Python script, ~621 lines)
-**Current version:** 1.1.0
+**Main file:** `imgpro.py` (single-file Python script, ~1100 lines)
+**Current version:** 1.2.0
 **Python requirement:** 3.8+
 **Primary dependency:** Pillow (PIL), pillow-heif (for HEIF/HEIC support)
 
@@ -19,13 +19,13 @@ ImgPro is a Python CLI tool for responsive image processing, designed for web de
 python3 imgpro.py info <file> [--json|--short] [--exif|--exif-all]
 
 # Resize command - generate multiple image sizes
-python3 imgpro.py resize --width <sizes> --input <file> [--quality 90] [--output ./resized/]
-python3 imgpro.py resize --height <sizes> --input <file> [--quality 90] [--output ./resized/]
+python3 imgpro.py resize <file> --width <sizes> [--quality 90] [--output ./resized/]
+python3 imgpro.py resize <file> --height <sizes> [--quality 90] [--output ./resized/]
 ```
 
 ### Testing
 ```bash
-# Run all tests (124 total: 69 info + 55 resize)
+# Run all tests (307 total)
 python -m pytest tests/ -v
 
 # Run specific test file
@@ -106,16 +106,15 @@ tests/
 ### Test Coverage
 - **Info command:** 100% coverage (69 tests)
 - **Resize command:** ~95% coverage (55 tests)
-- **Overall:** 46% coverage (124 total tests)
+- **Convert command:** 100% coverage (52 tests)
+- **Rename command:** 100% coverage (50 tests)
+- **Overall:** ~50% coverage (307 total tests)
 
 ## PRD and Task Tracking
 
 **Critical:** Always reference `PRD.md` (Product Requirements Document) for feature specifications and requirements. It is the source of truth for expected behavior.
 
 **Task tracking:** `TASKS.md` tracks implementation progress against the PRD. Check it to understand what's done and what's planned.
-
-### Known CLI Discrepancy
-The `resize` command currently uses `--input <file>` but PRD Section 4.2 specifies positional `<file>` argument. Tests are complete but CLI needs refactoring to match PRD (see TASKS.md Section 3).
 
 ## File Naming Convention
 

@@ -89,8 +89,8 @@ ImgPro provides several commands for image processing workflows.
 python3 imgpro.py info <file> [options]
 
 # Resize command - generate multiple sizes
-python3 imgpro.py resize --width <sizes> --input <file> [options]
-python3 imgpro.py resize --height <sizes> --input <file> [options]
+python3 imgpro.py resize <file> --width <sizes> [options]
+python3 imgpro.py resize <file> --height <sizes> [options]
 
 # Convert command - change image format
 python3 imgpro.py convert <file> --format <format> [options]
@@ -209,19 +209,18 @@ Generate multiple image sizes from a single source while maintaining aspect rati
 ### Resize Command Usage
 
 ```bash
-python3 imgpro.py resize --width <sizes> --input <file> [options]
-python3 imgpro.py resize --height <sizes> --input <file> [options]
+python3 imgpro.py resize <file> --width <sizes> [options]
+python3 imgpro.py resize <file> --height <sizes> [options]
 ```
 
 ### Resize Parameters
 
 **Required:**
 
+- `<file>`: Path to source image file (JPEG only in v1.0)
 - `--width <sizes>` OR `--height <sizes>` (mutually exclusive)
   - Comma-separated list of integers
   - Example: `--width 300,600,900,1200`
-- `--input <filepath>`
-  - Path to source image file (JPEG only in v1.0)
 
 **Optional:**
 
@@ -239,7 +238,7 @@ python3 imgpro.py resize --height <sizes> --input <file> [options]
 #### Resize to Multiple Widths
 
 ```bash
-python3 imgpro.py resize --width 300,600,900,1200 --input photo.jpg
+python3 imgpro.py resize photo.jpg --width 300,600,900,1200
 ```
 
 **Output:**
@@ -259,20 +258,20 @@ Successfully created 4 image(s) from photo.jpg
 #### Custom Quality and Output Directory
 
 ```bash
-python3 imgpro.py resize --width 300,600 --input photo.jpg --quality 85 --output ~/web/images/
+python3 imgpro.py resize photo.jpg --width 300,600 --quality 85 --output ~/web/images/
 ```
 
 #### Resize by Height
 
 ```bash
-python3 imgpro.py resize --height 400,800 --input banner.jpg
+python3 imgpro.py resize banner.jpg --height 400,800
 ```
 
 #### Batch Processing with Shell Loop
 
 ```bash
 for img in *.jpg; do
-  python3 imgpro.py resize --width 300,600,900 --input "$img"
+  python3 imgpro.py resize "$img" --width 300,600,900
 done
 ```
 
@@ -280,7 +279,7 @@ done
 
 ```bash
 find ./photos -name "*.jpg" | while read img; do
-  python3 imgpro.py resize --width 300,600 --input "$img" --output ./resized/
+  python3 imgpro.py resize "$img" --width 300,600 --output ./resized/
 done
 ```
 
@@ -434,7 +433,7 @@ source .venv/bin/activate
 2. **Test basic resize**:
 
    ```bash
-   python3 imgpro.py resize --width 300,600,900 --input test_photo.jpg
+   python3 imgpro.py resize test_photo.jpg --width 300,600,900
    ```
 
 3. **Verify output**:
@@ -446,7 +445,7 @@ source .venv/bin/activate
 4. **Test upscaling prevention**:
 
    ```bash
-   python3 imgpro.py resize --width 300,600,1500 --input test_photo.jpg
+   python3 imgpro.py resize test_photo.jpg --width 300,600,1500
    # Should skip 1500px with a warning
    ```
 
@@ -454,11 +453,11 @@ source .venv/bin/activate
 
    ```bash
    # Test missing file
-   python3 imgpro.py resize --width 300 --input nonexistent.jpg
+   python3 imgpro.py resize nonexistent.jpg --width 300
 
    # Test non-JPEG file
    touch test.png
-   python3 imgpro.py resize --width 300 --input test.png
+   python3 imgpro.py resize test.png --width 300
    ```
 
 ### Test Scenarios Covered
@@ -501,7 +500,7 @@ python -m pytest tests/ --cov=imgpro --cov-report=term-missing
   - 27 CLI integration tests
 - **Convert command:** 100% coverage (52 tests)
 - **Rename command:** 100% coverage (50 tests)
-- **Overall project:** 311 total tests
+- **Overall project:** 307 total tests
 
 **CI/CD:**
 
@@ -759,8 +758,7 @@ python -m pytest tests/test_info_cli.py::TestInfoCommandBasics::test_info_comman
 See [TASKS.md](TASKS.md) for current priorities and status. Next priorities include:
 
 1. Add field selection to `imgpro info` command
-2. Refactor resize CLI to use positional arguments (matching PRD)
-3. Add `--verbose` and `--quiet` modes
+2. Add `--verbose` and `--quiet` modes
 
 For design decisions and feature requirements, refer to [PRD.md](PRD.md).
 
