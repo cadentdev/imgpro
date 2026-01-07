@@ -5,13 +5,14 @@
 [![Tests](https://github.com/cadentdev/imgpro/actions/workflows/test.yml/badge.svg)](https://github.com/cadentdev/imgpro/actions/workflows/test.yml)
 [![Code Style](https://img.shields.io/badge/code%20style-PEP8-brightgreen.svg)](https://www.python.org/dev/peps/pep-0008/)
 
-**Cross-platform image processing tools written in Python**
+Cross-platform image processing tools written in Python.
 
 A command-line tool for generating multiple resolutions of images to support responsive web design workflows, specifically for static site generators like 11ty. ImgPro enables developers to create `srcset`-ready images from source files with configurable dimensions and quality settings.
 
 ## Features
 
 ### Info Command (v1.0)
+
 - **Image Metadata Inspection**: View dimensions, orientation, aspect ratio, and file size
 - **EXIF Support**: Extract and display EXIF metadata (camera, date, DPI, etc.)
 - **Multiple Output Formats**: Human-readable, JSON, or CSV for batch processing
@@ -19,6 +20,7 @@ A command-line tool for generating multiple resolutions of images to support res
 - **Broad Format Support**: JPEG, PNG, HEIF/HEIC, DNG (RAW), BMP, GIF, TIFF, WebP, and other Pillow-compatible formats
 
 ### Resize Command (v1.0)
+
 - **Multiple Resolutions**: Generate multiple image sizes from a single source
 - **Width/Height Based**: Resize by width or height while maintaining aspect ratio
 - **Smart Upscaling Prevention**: Automatically skips sizes larger than the original
@@ -28,6 +30,7 @@ A command-line tool for generating multiple resolutions of images to support res
 - **Format Support**: JPEG only in v1.0 (PNG, WebP, AVIF planned for future versions)
 
 ### Convert Command (v1.1+)
+
 - **Format Conversion**: Convert between JPEG, PNG, and WebP formats
 - **HEIC/HEIF Support**: Convert iPhone photos to web-compatible formats
 - **sRGB Color Profile**: Automatic conversion to sRGB for consistent web display
@@ -36,6 +39,7 @@ A command-line tool for generating multiple resolutions of images to support res
 - **MPO Support**: Handle multi-picture object files from cameras
 
 ### Rename Command (v1.1+)
+
 - **EXIF Date Prefix**: Add `YYYY-MM-DDTHHMMSS_` prefix for chronological sorting
 - **Extension Correction**: Fix mismatched extensions based on actual file format
 - **Non-Destructive**: Creates copies, preserving originals
@@ -50,17 +54,20 @@ A command-line tool for generating multiple resolutions of images to support res
 ### Setup
 
 1. **Clone the repository**:
+
    ```bash
    git clone https://github.com/cadentdev/imgpro.git
    cd imgpro
    ```
 
 2. **Install dependencies**:
+
    ```bash
    pip3 install -r requirements.txt
    ```
 
 3. **Make the script executable** (optional):
+
    ```bash
    chmod +x imgpro.py
    ```
@@ -98,30 +105,33 @@ python3 imgpro.py rename <file> --ext --prefix-exif-date [options]
 
 Inspect image files to view dimensions, orientation, aspect ratio, and EXIF metadata.
 
-### Usage
+### Info Command Usage
 
 ```bash
 python3 imgpro.py info <file> [options]
 ```
 
-### Parameters
+### Info Parameters
 
 **Required:**
+
 - `<file>`: Path to image file
 
 **Supported Formats:**
+
 - **Common formats**: JPEG (.jpg, .jpeg), PNG (.png)
 - **Apple formats**: HEIF/HEIC (.heic) - requires pillow-heif
 - **RAW formats**: DNG (.dng) - Adobe Digital Negative
 - **Other formats**: BMP, GIF, TIFF, WebP, and all Pillow-compatible formats
 
 **Optional:**
+
 - `--json`: Output as JSON (JSONL-compatible)
 - `--short`: Output as CSV line (for batch processing)
 - `--exif`: Display curated EXIF metadata
 - `--exif-all`: Display all EXIF tags
 
-### Examples
+### Info Examples
 
 #### Basic Image Info
 
@@ -130,7 +140,8 @@ python3 imgpro.py info photo.jpg
 ```
 
 **Output:**
-```
+
+```text
 File: photo.jpg
 Path: /home/user/photos/photo.jpg
 Dimensions: 1920x1080
@@ -147,6 +158,7 @@ python3 imgpro.py info photo.jpg --json
 ```
 
 **Output:**
+
 ```json
 {"filename": "photo.jpg", "path": "/home/user/photos/photo.jpg", "width": 1920, "height": 1080, "orientation": "landscape", "ratio_raw": "16:9", "common_ratio": "16:9", "size_kb": 245.32, "has_exif": true, "creation_date": "2024:11:12 14:30:00", "exif": {"date_taken": "2024:11:12 14:30:00", "camera_make": "Canon", "camera_model": "Canon EOS 5D"}}
 ```
@@ -163,7 +175,8 @@ done
 **Note:** The `2>/dev/null || true` pattern makes the loop continue even if some files can't be read, which is useful when processing mixed file types.
 
 **Output (images.csv):**
-```
+
+```text
 photo1.jpg,1920,1080,landscape,16:9,16:9,245.32,2024:11:12 14:30:00
 photo2.jpg,1080,1920,portrait,9:16,9:16,189.45,2024:11:12 15:00:00
 photo3.jpg,1000,1000,square,1:1,1:1,156.78,
@@ -176,7 +189,8 @@ python3 imgpro.py info photo.jpg --exif
 ```
 
 **Additional output:**
-```
+
+```text
 EXIF Data:
   Date Taken: 2024:11:12 14:30:00
   Camera Make: Canon
@@ -192,16 +206,17 @@ EXIF Data:
 
 Generate multiple image sizes from a single source while maintaining aspect ratio.
 
-### Usage
+### Resize Command Usage
 
 ```bash
 python3 imgpro.py resize --width <sizes> --input <file> [options]
 python3 imgpro.py resize --height <sizes> --input <file> [options]
 ```
 
-### Parameters
+### Resize Parameters
 
 **Required:**
+
 - `--width <sizes>` OR `--height <sizes>` (mutually exclusive)
   - Comma-separated list of integers
   - Example: `--width 300,600,900,1200`
@@ -209,6 +224,7 @@ python3 imgpro.py resize --height <sizes> --input <file> [options]
   - Path to source image file (JPEG only in v1.0)
 
 **Optional:**
+
 - `--quality <1-100>` (default: 90)
   - JPEG compression quality
 - `--output <directory>` (default: `./resized/`)
@@ -218,7 +234,7 @@ python3 imgpro.py resize --height <sizes> --input <file> [options]
 - `--version` / `-v`
   - Display version number
 
-### Examples
+### Resize Examples
 
 #### Resize to Multiple Widths
 
@@ -227,7 +243,8 @@ python3 imgpro.py resize --width 300,600,900,1200 --input photo.jpg
 ```
 
 **Output:**
-```
+
+```text
 Processing: photo.jpg (2400x1600)
 Output directory: ./resized/
 
@@ -273,24 +290,26 @@ done
 
 Convert images between formats with automatic sRGB color profile conversion.
 
-### Usage
+### Convert Command Usage
 
 ```bash
 python3 imgpro.py convert <file> --format <format> [options]
 ```
 
-### Parameters
+### Convert Parameters
 
 **Required:**
+
 - `<file>`: Path to source image file
 - `--format <format>`: Target format (`jpeg`, `jpg`, `png`, `webp`)
 
 **Optional:**
+
 - `--quality <1-100>` (default: 80): Quality for lossy formats
 - `--output <directory>` (default: `./converted/`): Output directory
 - `--strip-exif`: Remove EXIF metadata from output
 
-### Examples
+### Convert Examples
 
 #### Convert HEIC to JPEG
 
@@ -318,22 +337,24 @@ done
 
 Rename images based on actual format or EXIF metadata.
 
-### Usage
+### Rename Command Usage
 
 ```bash
 python3 imgpro.py rename <file> [--ext] [--prefix-exif-date] [options]
 ```
 
-### Parameters
+### Rename Parameters
 
 **Required:**
+
 - `<file>`: Path to image file
 - At least one of: `--ext` or `--prefix-exif-date`
 
 **Optional:**
+
 - `--output <directory>`: Output directory (default: same as source)
 
-### Examples
+### Rename Examples
 
 #### Fix Mismatched Extension
 
@@ -363,7 +384,7 @@ python3 imgpro.py rename photo.HEIC --ext --prefix-exif-date
 The `scripts/` directory contains utility scripts for batch processing:
 
 | Script | Purpose |
-|--------|---------|
+| -------- | --------- |
 | `rename-all.sh` | Add EXIF date prefix and correct extensions |
 | `convert-all.sh` | Convert images to JPEG with sRGB profile |
 | `resize-all.sh` | Resize images to specified width(s) |
@@ -397,6 +418,7 @@ source .venv/bin/activate
 ### Manual Testing
 
 1. **Create a test image**:
+
    ```bash
    python3 -c "
    from PIL import Image, ImageDraw
@@ -410,22 +432,26 @@ source .venv/bin/activate
    ```
 
 2. **Test basic resize**:
+
    ```bash
    python3 imgpro.py resize --width 300,600,900 --input test_photo.jpg
    ```
 
 3. **Verify output**:
+
    ```bash
    ls -lh resized/
    ```
 
 4. **Test upscaling prevention**:
+
    ```bash
    python3 imgpro.py resize --width 300,600,1500 --input test_photo.jpg
    # Should skip 1500px with a warning
    ```
 
 5. **Test error handling**:
+
    ```bash
    # Test missing file
    python3 imgpro.py resize --width 300 --input nonexistent.jpg
@@ -454,16 +480,19 @@ source .venv/bin/activate
 The project includes a comprehensive `pytest`-based test suite:
 
 **Run all tests:**
+
 ```bash
 python -m pytest tests/ -v
 ```
 
 **Run with coverage report:**
+
 ```bash
 python -m pytest tests/ --cov=imgpro --cov-report=term-missing
 ```
 
 **Test Coverage:**
+
 - **Info command:** 100% coverage (69 tests)
   - 36 unit tests for helper functions
   - 33 CLI integration tests
@@ -475,6 +504,7 @@ python -m pytest tests/ --cov=imgpro --cov-report=term-missing
 - **Overall project:** 311 total tests
 
 **CI/CD:**
+
 - GitHub Actions automatically runs tests on all PRs
 - Tests across Python 3.8, 3.9, 3.10, 3.11
 
@@ -483,6 +513,7 @@ python -m pytest tests/ --cov=imgpro --cov-report=term-missing
 This project follows TDD practices for all new features:
 
 **Workflow:**
+
 1. **Write tests first** - Define expected behavior through tests before implementation
 2. **Watch them fail** - Confirm tests fail as expected (red)
 3. **Implement feature** - Write minimal code to make tests pass (green)
@@ -490,12 +521,14 @@ This project follows TDD practices for all new features:
 5. **Maintain coverage** - Keep coverage high (>80% on core logic)
 
 **For new features:**
+
 - Use PRD sections as source of truth for test requirements
 - Create both unit tests (helper functions) and integration tests (CLI)
 - Test edge cases: file handling, error conditions, boundary values
 - Focus on EXIF handling, aspect ratios, and format conversions
 
 **Example:** The `info` command was developed using TDD:
+
 - First: Wrote 69 tests covering all requirements (all failing)
 - Then: Implemented features until all tests passed
 - Result: 100% coverage with confidence in correctness
@@ -509,6 +542,7 @@ ImgPro uses a simple, predictable naming pattern:
 **Pattern**: `{basename}_{size}.{ext}`
 
 **Examples**:
+
 - `photo.jpg` at 300px → `photo_300.jpg`
 - `vacation.jpeg` at 600px → `vacation_600.jpeg`
 - `banner.JPG` at 1200px → `banner_1200.JPG`
@@ -530,23 +564,27 @@ ImgPro provides clear error messages and appropriate exit codes:
 ### Common Errors
 
 **File not found:**
-```
+
+```text
 Error: File not found: photo.jpg
 ```
 
 **Unsupported format (v1.0 JPEG-only):**
-```
+
+```text
 Error: Unsupported format. Version 1.0 supports JPEG only.
 Supported extensions: .jpg, .jpeg, .JPG, .JPEG
 ```
 
 **Invalid quality value:**
-```
+
+```text
 Error: Quality must be between 1-100
 ```
 
 **Both width and height specified:**
-```
+
+```text
 Error: Cannot specify both --width and --height
 ```
 
@@ -557,6 +595,7 @@ Error: Cannot specify both --width and --height
 ImgPro leverages Pillow (PIL) for image processing and supports a wide range of formats:
 
 **Info Command (Read Support):**
+
 - ✅ **JPEG** (.jpg, .jpeg, .JPG, .JPEG) - Full support including EXIF metadata
 - ✅ **PNG** (.png) - Full support
 - ✅ **HEIF/HEIC** (.heic, .HEIC) - Requires `pillow-heif` package (automatically installed)
@@ -568,10 +607,12 @@ ImgPro leverages Pillow (PIL) for image processing and supports a wide range of 
 - ✅ **Other formats** - Most Pillow-compatible formats
 
 **Resize Command (v1.0):**
+
 - ✅ **JPEG only** (.jpg, .jpeg, .JPG, .JPEG)
 - 🔜 PNG, WebP, AVIF support planned for future versions (see Roadmap)
 
 **Notes:**
+
 - Format detection is based on file content, not extension (e.g., a JPEG file renamed to .heic will still work)
 - HEIF/HEIC support requires the `pillow-heif` package, which is included in `requirements.txt`
 - Some formats may have limited EXIF support depending on how metadata is stored
@@ -614,7 +655,7 @@ See [PRD.md](PRD.md) for the complete product requirements and future enhancemen
 
 ### Project Structure
 
-```
+```text
 imgpro/
 ├── .github/
 │   └── workflows/
@@ -656,6 +697,7 @@ The script uses a subcommand architecture. To add a new command:
 3. Set the function as the default handler: `parser.set_defaults(func=cmd_convert)`
 
 Example structure:
+
 ```python
 def cmd_convert(args):
     """Handle the convert subcommand."""
@@ -715,6 +757,7 @@ python -m pytest tests/test_info_cli.py::TestInfoCommandBasics::test_info_comman
 ### Project Priorities
 
 See [TASKS.md](TASKS.md) for current priorities and status. Next priorities include:
+
 1. Add field selection to `imgpro info` command
 2. Refactor resize CLI to use positional arguments (matching PRD)
 3. Add `--verbose` and `--quiet` modes

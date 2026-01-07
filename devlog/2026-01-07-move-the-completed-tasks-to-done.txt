@@ -1,0 +1,313 @@
+
+ * ▐▛███▜▌ *   Claude Code v2.0.76
+* ▝▜█████▛▘ *  Opus 4.5 · Claude Max
+ *  ▘▘ ▝▝  *   ~/Repos/cadentdev/imgpro
+
+> Let's move the completed tasks, including their headers to maintain 
+contenxt, from @TASKS.md to a new file in the repo's root, `DONE.md` 
+  ⎿  Read TASKS.md (291 lines)
+
+⏺ I'll create DONE.md with the completed tasks and then update TASKS.md to remove them.
+
+⏺ Write(DONE.md)
+  ⎿  Wrote 158 lines to DONE.md                                            
+     # ImgPro Completed Tasks
+     This document archives completed implementation tasks from `TASKS.md`.
+     ---
+     ## ✅ Completed Tasks
+     ### 1. Implement `imgpro info` (Section 4.1 of PRD)
+     … +148 lines (ctrl+o to expand)
+
+⏺ Write(TASKS.md)
+  ⎿  Added 10 lines, removed 181 lines                                    
+       12                                                                
+       13  - [ ] Normalize handling of the input file. Some sub-commands 
+            use the --input option to specify a file name, others simply 
+            accept the filename as a required input.  For example,       
+           compare `imgpro info` to `imgpro resize`                      
+       14                                                                
+       15 -## ✅ Completed Tasks                                          
+       16 -                                                              
+       17 -### 1. Implement `imgpro info` (Section 4.1 of PRD)           
+       18 -                                                              
+       19 -**Status:** Completed via PR #3                               
+       20 -**Test Coverage:** 69/69 tests passing (36 unit + 33 CLI      
+          -integration)                                                  
+       21 -                                                              
+       22 -- [x] Core CLI wiring                                         
+       23 -  - [x] Add an `info` subcommand to `imgpro.py`               
+       24 -  - [x] Use positional `<file>` argument: `imgpro info <file> 
+          - [options]`                                                   
+       25 -  - [x] Add flags: `--json`, `--short`, `--exif`,             
+          -`--exif-all`                                                  
+       26 -                                                              
+       27 -- [x] Core behavior                                           
+       28 -  - [x] Open file with Pillow; fail cleanly if unreadable or  
+          -unsupported                                                   
+       29 -  - [x] Read pixel dimensions, taking EXIF orientation into   
+          -account                                                       
+       30 -  - [x] Classify orientation: `portrait`, `landscape`,        
+          -`square`                                                      
+       31 -  - [x] Compute reduced integer aspect ratio (`ratio_raw`)    
+          -using GCD                                                     
+       32 -  - [x] Match `ratio_raw` against common ratios (1:1, 4:3,    
+          -3:2, 16:9, 5:4, 4:5, 9:16, 1.91:1)                            
+       33 -  - [x] Report `common_ratio` or `none`                       
+       34 -                                                              
+       35 -- [x] File and EXIF metadata                                  
+       36 -  - [x] Report filename, path, file size in KB                
+       37 -  - [x] Detect presence of EXIF                               
+       38 -  - [x] Extract curated EXIF subset (date taken, make, model, 
+          - orientation, DPI)                                            
+       39 -  - [x] Add `--exif-all` support to dump all EXIF tags        
+       40 -                                                              
+       41 -- [x] Output formats                                          
+       42 -  - [x] Default: human-readable multi-line summary            
+       43 -  - [x] `--json`: one JSON object per invocation              
+          -(JSONL-friendly)                                              
+       44 -  - [x] `--short`: one CSV line per invocation with fixed     
+          -column order                                                  
+       45 -                                                              
+       46 -- [x] Error handling & exit codes                             
+       47 -  - [x] Use exit code scheme (0=success, 3=not found,         
+          -1=error, 2=invalid args)                                      
+       48 -  - [x] Ensure errors go to stderr; normal output goes to     
+          -stdout                                                        
+       49 -                                                              
+       50 -### 2. Testing & TDD Setup (Section 5.6)                      
+       51 -                                                              
+       52 -- [x] Add pytest to the project                               
+       53 -  - [x] Add `pytest` to `requirements.txt`                    
+       54 -  - [x] Create `tests/` directory structure                   
+       55 -  - [x] Set up test fixtures with synthetic EXIF data         
+       56 -                                                              
+       57 -- [x] Unit tests for `info` helpers (36 tests)                
+       58 -  - [x] Aspect ratio calculation and common ratio matching    
+       59 -  - [x] Orientation classification                            
+       60 -  - [x] EXIF extraction logic                                 
+       61 -                                                              
+       62 -- [x] CLI integration tests for `info` (33 tests)             
+       63 -  - [x] Success and error paths                               
+       64 -  - [x] Test `--json`, `--short`, `--exif`, `--exif-all`      
+          -flags                                                         
+       65 -  - [x] Assert on exit codes and stderr/stdout separation     
+       66 -                                                              
+       67 -- [x] Unit tests for `resize` helpers (28 tests)              
+       68 -  - [x] Test `parse_sizes`, `validate_jpeg`,                  
+          -`get_file_size_kb`                                            
+       69 -  - [x] Test resize_image function with various dimensions    
+       70 -  - [x] Test upscaling prevention and aspect ratio            
+          -preservation                                                  
+       71 -  - [x] Test quality settings and output directory creation   
+       72 -                                                              
+       73 -- [x] CLI integration tests for `resize` (27 tests)           
+       74 -  - [x] Success and error paths                               
+       75 -  - [x] Width/height mutual exclusion                         
+       76 -  - [x] Quality validation and output directory creation      
+       77 -  - [x] Upscaling prevention and output format                
+       78 -                                                              
+       79 -- [x] CI/CD Setup                                             
+       80 -  - [x] GitHub Actions workflow for automated testing on PRs  
+       81 -  - [x] Tests across Python 3.8, 3.9, 3.10, 3.11              
+       82 -                                                              
+       15  ---                                                           
+       16                                                                
+       17  ## 📋 In Progress / Planned                                   
+       18                                                                
+       19 -### 3. Implement `imgpro rename` (Section 4.4 of PRD) -       
+          -Completed                                                     
+       20 -                                                              
+       21 -> **Status:** Completed in v1.1.0                             
+       22 -> **Depends on:** None                                        
+       23 -                                                              
+       24 -The `rename` command provides two key features for organizing 
+          - image files:                                                 
+       25 -                                                              
+       26 -1. Fix mismatched extensions based on actual file format      
+       27 -2. Prepend EXIF date/time for chronological sorting           
+       28 -                                                              
+       29 -- [x] Write tests first (TDD)                                 
+       30 -  - [x] Unit tests for format detection and extension mapping 
+       31 -  - [x] Unit tests for EXIF date extraction and formatting    
+       32 -  - [x] Unit tests for filename transformation logic          
+       33 -  - [x] CLI integration tests for `--ext` flag                
+       34 -  - [x] CLI integration tests for `--prefix-exif-date` flag   
+       35 -  - [x] CLI integration tests for combined flags              
+       36 -  - [x] Tests for missing EXIF date (skip with warning)       
+       37 -  - [x] Tests for output directory option                     
+       38 -                                                              
+       39 -- [x] Implement `rename` command                              
+       40 -  - [x] Add `rename` subparser with positional `<file>`       
+          -argument                                                      
+       41 -  - [x] Implement `--ext` flag for extension correction       
+       42 -    - [x] Read actual image format from file content          
+       43 -    - [x] Map format to lowercase extension (JPEG→.jpg,       
+          -PNG→.png, HEIF→.heic)                                         
+       44 -    - [x] Create copy with corrected extension                
+       45 -  - [x] Implement `--prefix-exif-date` flag                   
+       46 -    - [x] Extract DateTimeOriginal from EXIF                  
+       47 -    - [x] Format as YYYY-MM-DDTHHMMSS_ (no colons for macOS)  
+       48 -    - [x] Skip file with warning if no EXIF date              
+       49 -  - [x] Support `--output <directory>` option                 
+       50 -  - [x] Exit codes: 0=success, 3=not found, 4=cannot read     
+       51 -                                                              
+       52 -### 4. Implement `imgpro convert` (Section 4.3 of PRD) -      
+          -Completed                                                     
+       53 -                                                              
+       54 -> **Status:** Completed in v1.2.0                             
+       55 -> **Depends on:** None                                        
+       56 -                                                              
+       57 -The `convert` command enables format conversion, primarily    
+          -HEIC→JPEG.                                                    
+       58 -                                                              
+       59 -- [x] Core implementation complete                            
+       60 -  - [x] Add `convert` subparser with positional `<source>`    
+          -argument                                                      
+       61 -  - [x] Implement `--format` option (required: jpeg, png,     
+          -webp)                                                         
+       62 -  - [x] Default output to `./converted/` directory            
+       63 -  - [x] Preserve EXIF by default                              
+       64 -  - [x] Implement `--strip-exif` flag to remove metadata      
+       65 -  - [x] Support `--quality` option (default: 80)              
+       66 -  - [x] Handle existing output files (overwrite with warning) 
+       67 -  - [x] sRGB color profile conversion (automatic)             
+       68 -  - [x] WebP output format support                            
+       69 -                                                              
+       70 -- [x] Tests complete (50+ tests)                              
+       71 -  - [x] CLI integration tests for basic conversion            
+       72 -  - [x] CLI integration tests for `--strip-exif` flag         
+       73 -  - [x] CLI integration tests for `--quality` option          
+       74 -  - [x] Tests for output directory and naming                 
+       75 -  - [x] Tests for WebP conversion                             
+       76 -                                                              
+       77 -- [ ] Future enhancements                                     
+       78 -  - [ ] Add `--no-srgb` flag to skip sRGB conversion          
+       79 -                                                              
+       80 -### 5. Create Bash Scripts in `scripts/` Directory -          
+          -Completed                                                     
+       81 -                                                              
+       82 -> **Status:** Completed in v1.2.0                             
+       83 -> **Depends on:** rename and convert commands                 
+       84 -                                                              
+       85 -Utility scripts demonstrating batch workflows with imgpro.    
+       86 -                                                              
+       87 -- [x] Create `scripts/` directory structure                   
+       88 -- [x] Create `scripts/README.md` with usage examples          
+       89 -                                                              
+       90 -- [x] Script 1: `resize-all.sh`                               
+       91 -  - [x] Resize all images in directory to specified width     
+       92 -  - [x] Skip files already smaller than target width          
+       93 -  - [x] Use `python3 imgpro.py` invocation                    
+       94 -                                                              
+       95 -- [x] Script 2: `organize-by-orientation.sh`                  
+       96 -  - [x] Copy images to subdirectories by orientation          
+          -(landscape/, portrait/, square/)                              
+       97 -  - [x] Variant: organize by aspect ratio (4x3/, 3x4/, 16x9/, 
+          - etc.)                                                        
+       98 -  - [x] Handle directory naming without colons                
+       99 -                                                              
+      100 -- [x] Script 3: `rename-all.sh`                               
+      101 -  - [x] Add EXIF date prefix to filenames                     
+      102 -  - [x] Correct file extensions based on actual format        
+      103 -                                                              
+      104 -- [x] Script 4: `convert-all.sh`                              
+      105 -  - [x] Convert all images to JPEG with sRGB profile          
+      106 -  - [x] Configurable quality via environment variable         
+      107 -  - [x] Force mode to re-convert existing JPEGs               
+      108 -                                                              
+      109 -- [ ] Script 5: `generate-responsive-set.sh` (lower priority) 
+      110 -  - [ ] Create multiple width versions for srcset             
+      111 -  - [ ] Output organized for HTML integration                 
+      112 -                                                              
+       19  ### 6. Enhanced `imgpro info` Field Selection (Section 4.1 of 
+            PRD) - Priority 4                                            
+       20                                                                
+       21  > **Status:** Not started                                     
+     ...
+      211    - [ ] Keep `--input` working for backwards compatibility    
+           (or plan breaking change)                                     
+      212    - [ ] Ensure help text matches PRD style                    
+      213                                                                
+      214 -- [x] Verify behavior matches spec                            
+      215 -  - [x] Confirm width/height mutual exclusion (tested in      
+          -test_resize_cli.py)                                           
+      216 -  - [x] Confirm upscaling prevention (tested in               
+          -TestResizeUpscalingPrevention)                                
+      217 -  - [x] Confirm output directory behavior (tested in          
+          -TestResizeOutputHandling)                                     
+      218 -  - [x] Verify EXIF stripping (implemented in resize_image,   
+          -line 584)                                                     
+      219 -                                                              
+      214  - [ ] Update documentation                                    
+      215    - [ ] Update `README.md` examples to use positional         
+           `<file>`                                                      
+      216    - [ ] Update help text to match PRD                         
+     ...
+      225                                                                
+      226  ## 🎯 Future Enhancements                                     
+      227                                                                
+      228 -### 5. Nice-to-Haves (PRD Section 7.x)                        
+      228 +### Nice-to-Haves (PRD Section 7.x)                           
+      229                                                                
+      230  - [ ] Add `--verbose` and `--quiet` modes (PRD 4.6.3–4.6.4)   
+      231    - [ ] Implement verbose mode with detailed processing info  
+     ...
+      257    - [ ] AVIF support                                          
+      258    - [ ] Additional format conversions                         
+      259                                                                
+      260 +- [ ] Script: `generate-responsive-set.sh` (lower priority)   
+      261 +  - [ ] Create multiple width versions for srcset             
+      262 +  - [ ] Output organized for HTML integration                 
+      263 +                                                              
+      264 +- [ ] Convert command enhancements                            
+      265 +  - [ ] Add `--no-srgb` flag to skip sRGB conversion          
+      266 +                                                              
+      267  ---                                                           
+      268                                                                
+      269  ## 📊 Project Status                                          
+     ...
+      269  - Convert command: 100% (52 tests)                            
+      270  - Rename command: 100% (50 tests)                             
+      271                                                                
+      272 -**Completed:**                                                
+      273 -                                                              
+      274 -- ✅ Info command (full implementation)                        
+      275 -- ✅ Resize command (implementation complete, CLI refactor     
+          -pending)                                                      
+      276 -- ✅ Rename command (EXIF date prefix + extension correction)  
+      277 -- ✅ Convert command (HEIC→JPEG, PNG, WebP with sRGB           
+          -conversion)                                                   
+      278 -- ✅ HEIF/HEIC format support via pillow-heif                  
+      279 -- ✅ Comprehensive test suite                                  
+      280 -- ✅ CI/CD pipeline                                            
+      281 -- ✅ Batch scripts in `scripts/` directory                     
+      282 -- ✅ Documentation updates for v1.2.0                          
+      283 -                                                              
+      272  **Next Priorities (in order):**                               
+      273                                                                
+      274  1. Add field selection to `imgpro info` command               
+     ...
+      288  3. Add `--verbose` and `--quiet` modes                        
+      289                                                                
+      290  **Core Principle:** All file-modifying commands create copies 
+            by default (non-destructive).                                
+      291 +                                                              
+      292 +**See also:** `DONE.md` for completed tasks archive.          
+
+⏺ Done. I've:
+
+  1. Created DONE.md with all 5 completed task sections:
+    - imgpro info implementation
+    - Testing & TDD Setup
+    - imgpro rename implementation
+    - imgpro convert implementation
+    - Bash scripts in scripts/
+  2. Updated TASKS.md to contain only pending work:
+    - Task Inbox
+    - In Progress/Planned (sections 6-7)
+    - Future Enhancements (consolidated)
+    - Project Status summary
+  3. Added a cross-reference at the bottom of TASKS.md pointing to DONE.md
+
+
+
