@@ -384,7 +384,7 @@ python3 imgpro.py rename photo.HEIC --ext --prefix-exif-date
 The `scripts/` directory contains utility scripts for batch processing:
 
 | Script | Purpose |
-|--------|---------|
+| -------- | --------- |
 | `rename-all.sh` | Add EXIF date prefix and correct extensions |
 | `convert-all.sh` | Convert images to JPEG with sRGB profile |
 | `resize-all.sh` | Resize images to specified width(s) |
