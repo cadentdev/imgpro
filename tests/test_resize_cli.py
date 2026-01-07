@@ -12,13 +12,13 @@ def run_imgpro_resize(input_file, *args):
     Run imgpro resize command and return result.
 
     Args:
-        input_file: Path to input image file
+        input_file: Path to input image file (positional argument)
         *args: Additional CLI arguments
 
     Returns:
         tuple: (exit_code, stdout, stderr)
     """
-    cmd = [sys.executable, 'imgpro.py', 'resize', '--input', str(input_file)] + list(args)
+    cmd = [sys.executable, 'imgpro.py', 'resize', str(input_file)] + list(args)
     result = subprocess.run(
         cmd,
         capture_output=True,
@@ -43,8 +43,8 @@ class TestResizeCommandBasics:
         assert result.returncode == 0
         assert 'resize' in result.stdout.lower()
 
-    def test_resize_requires_input_argument(self):
-        """Test that resize command requires --input argument."""
+    def test_resize_requires_file_argument(self):
+        """Test that resize command requires positional file argument."""
         cmd = [sys.executable, 'imgpro.py', 'resize', '--width', '300']
         result = subprocess.run(
             cmd,
@@ -53,7 +53,7 @@ class TestResizeCommandBasics:
             cwd=Path(__file__).parent.parent
         )
         assert result.returncode != 0
-        assert 'required' in result.stderr.lower() or 'required' in result.stdout.lower()
+        assert 'required' in result.stderr.lower() or 'file' in result.stderr.lower()
 
     def test_resize_requires_width_or_height(self):
         """Test that resize requires either --width or --height."""
@@ -62,7 +62,7 @@ class TestResizeCommandBasics:
         # Create test image
         img_path = create_test_image_file(1200, 800, filename='test.jpg')
 
-        cmd = [sys.executable, 'imgpro.py', 'resize', '--input', str(img_path)]
+        cmd = [sys.executable, 'imgpro.py', 'resize', str(img_path)]
         result = subprocess.run(
             cmd,
             capture_output=True,
@@ -313,7 +313,7 @@ class TestResizeOutputHandling:
         try:
             os.chdir(temp_dir)
             cmd = [sys.executable, str(Path(old_cwd) / 'imgpro.py'), 'resize',
-                   '--input', 'test.jpg', '--width', '300']
+                   'test.jpg', '--width', '300']
             result = subprocess.run(cmd, capture_output=True, text=True)
 
             assert result.returncode == 0

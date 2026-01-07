@@ -282,7 +282,7 @@ class TestCmdResizeDirect:
         output_dir = temp_dir / 'resized'
 
         args = argparse.Namespace(
-            input=str(img_path),
+            file=str(img_path),
             width='300',
             height=None,
             output=str(output_dir),
@@ -305,7 +305,7 @@ class TestCmdResizeDirect:
         output_dir = temp_dir / 'resized'
 
         args = argparse.Namespace(
-            input=str(img_path),
+            file=str(img_path),
             width='300,600,900',
             height=None,
             output=str(output_dir),
@@ -326,7 +326,7 @@ class TestCmdResizeDirect:
         output_dir = temp_dir / 'resized'
 
         args = argparse.Namespace(
-            input=str(img_path),
+            file=str(img_path),
             width=None,
             height='400',
             output=str(output_dir),
@@ -344,7 +344,7 @@ class TestCmdResizeDirect:
         from imgpro import cmd_resize
 
         args = argparse.Namespace(
-            input=str(temp_dir / 'missing.jpg'),
+            file=str(temp_dir / 'missing.jpg'),
             width='300',
             height=None,
             output=str(temp_dir / 'resized'),
@@ -367,7 +367,7 @@ class TestCmdResizeDirect:
         img.save(png_file, 'PNG')
 
         args = argparse.Namespace(
-            input=str(png_file),
+            file=str(png_file),
             width='300',
             height=None,
             output=str(temp_dir / 'resized'),
@@ -387,7 +387,7 @@ class TestCmdResizeDirect:
         img_path = create_test_image_file(1200, 800, directory=temp_dir, filename='test.jpg')
 
         args = argparse.Namespace(
-            input=str(img_path),
+            file=str(img_path),
             width='300',
             height='400',
             output=str(temp_dir / 'resized'),
@@ -407,7 +407,7 @@ class TestCmdResizeDirect:
         img_path = create_test_image_file(1200, 800, directory=temp_dir, filename='test.jpg')
 
         args = argparse.Namespace(
-            input=str(img_path),
+            file=str(img_path),
             width=None,
             height=None,
             output=str(temp_dir / 'resized'),
@@ -427,7 +427,7 @@ class TestCmdResizeDirect:
         img_path = create_test_image_file(1200, 800, directory=temp_dir, filename='test.jpg')
 
         args = argparse.Namespace(
-            input=str(img_path),
+            file=str(img_path),
             width='300',
             height=None,
             output=str(temp_dir / 'resized'),
@@ -447,7 +447,7 @@ class TestCmdResizeDirect:
         img_path = create_test_image_file(1200, 800, directory=temp_dir, filename='test.jpg')
 
         args = argparse.Namespace(
-            input=str(img_path),
+            file=str(img_path),
             width='300',
             height=None,
             output=str(temp_dir / 'resized'),
@@ -468,7 +468,7 @@ class TestCmdResizeDirect:
         output_dir = temp_dir / 'resized'
 
         args = argparse.Namespace(
-            input=str(img_path),
+            file=str(img_path),
             width='400,1200',
             height=None,
             output=str(output_dir),
@@ -490,7 +490,7 @@ class TestCmdResizeDirect:
         output_dir = temp_dir / 'resized'
 
         args = argparse.Namespace(
-            input=str(img_path),
+            file=str(img_path),
             width='800,1200',
             height=None,
             output=str(output_dir),
@@ -515,7 +515,7 @@ class TestCmdResizeDirect:
         output_dir = temp_dir / 'resized'
 
         args = argparse.Namespace(
-            input=str(img_path),
+            file=str(img_path),
             width='300',
             height=None,
             output=str(output_dir),
@@ -627,7 +627,7 @@ class TestMainFunction:
 
         monkeypatch.setattr(sys, 'argv', [
             'imgpro.py', 'resize',
-            '--input', str(img_path),
+            str(img_path),
             '--width', '300',
             '--output', str(output_dir)
         ])
@@ -766,7 +766,7 @@ class TestCmdResizeCorruptImage:
         corrupt_file.write_bytes(b'JFIF fake jpeg header but not a real image')
 
         args = argparse.Namespace(
-            input=str(corrupt_file),
+            file=str(corrupt_file),
             width='300',
             height=None,
             output=str(temp_dir / 'resized'),

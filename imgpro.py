@@ -716,11 +716,11 @@ def cmd_info(args):
 
 def cmd_resize(args):
     """Handle the resize subcommand."""
-    input_path = Path(args.input)
+    input_path = Path(args.file)
 
     # Validate input file exists
     if not input_path.exists():
-        print(f"Error: File not found: {args.input}", file=sys.stderr)
+        print(f"Error: File not found: {args.file}", file=sys.stderr)
         sys.exit(3)
 
     # Validate it's a JPEG
@@ -1009,8 +1009,7 @@ def main():
     )
 
     resize_parser.add_argument(
-        '--input',
-        required=True,
+        'file',
         help='Path to input image file'
     )
 
