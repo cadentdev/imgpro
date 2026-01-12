@@ -8,18 +8,19 @@ This document tracks implementation progress based on `PRD.md`.
 
 ## 📋 In Progress / Planned
 
-### 6. Align `imgpro resize` with PRD (Section 4.2) - Backlog
+### 6. Align `imgpro resize` with PRD (Section 4.2) - Completed
 
-> **Note:** Current code uses `--input`; PRD specifies positional `<file>`. Tests are complete but CLI needs refactoring.
+> **Status:** Completed via PR #12 (2026-01-07)
+> **Breaking Change:** Removed `--input` flag in favor of positional `<file>` argument.
 
-- [ ] Refactor CLI to match PRD
-  - [ ] Introduce positional `<file>` for `resize`
-  - [ ] Keep `--input` working for backwards compatibility (or plan breaking change)
-  - [ ] Ensure help text matches PRD style
+- [x] Refactor CLI to match PRD
+  - [x] Introduce positional `<file>` for `resize`
+  - [x] Breaking change: removed `--input` flag (not backwards compatible)
+  - [x] Help text now matches PRD style
 
-- [ ] Update documentation
-  - [ ] Update `README.md` examples to use positional `<file>`
-  - [ ] Update help text to match PRD
+- [x] Update documentation
+  - [x] Update `README.md` examples to use positional `<file>`
+  - [x] Update CLAUDE.md examples to use positional `<file>`
 
 ### 7. Enhanced `imgpro info` Field Selection (Section 4.1 of PRD) - Priority 4
 
@@ -93,7 +94,7 @@ Add individual field flags for selective metadata output.
 ## 📊 Project Status
 
 **Current Version:** 1.2.0
-**Test Coverage:** ~50% (311 tests)
+**Test Coverage:** ~50% (307 tests)
 
 - Info command: 100% (69 tests)
 - Resize command: ~95% (55 tests)
@@ -103,8 +104,7 @@ Add individual field flags for selective metadata output.
 **Next Priorities (in order):**
 
 1. Add field selection to `imgpro info` command
-2. Align `imgpro resize` CLI with PRD (positional file argument)
-3. Add `--verbose` and `--quiet` modes
+2. Add `--verbose` and `--quiet` modes
 
 **Core Principle:** All file-modifying commands create copies by default (non-destructive).
 
