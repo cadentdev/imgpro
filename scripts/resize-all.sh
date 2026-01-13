@@ -80,7 +80,7 @@ for img in "$INPUT_DIR"/*.jpg "$INPUT_DIR"/*.jpeg "$INPUT_DIR"/*.JPG "$INPUT_DIR
 
     echo "Processing: $FILENAME"
 
-    if python3 "$IMGPRO" resize --input "$img" --width "$WIDTH" --output "$OUTPUT_DIR" 2>&1; then
+    if python3 "$IMGPRO" resize "$img" --width "$WIDTH" --output "$OUTPUT_DIR" 2>&1; then
         SUCCESS=$((SUCCESS + 1))
     else
         EXIT_CODE=$?

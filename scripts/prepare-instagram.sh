@@ -152,7 +152,7 @@ for img in "${IMAGE_FILES[@]}"; do
     FILENAME=$(basename "$img")
     echo "Processing: $FILENAME"
 
-    if python3 "$IMGPRO" resize --input "$img" --width "$RESIZE_WIDTH" --output "$RESIZE_DIR" --quality "$RESIZE_QUALITY" 2>&1; then
+    if python3 "$IMGPRO" resize "$img" --width "$RESIZE_WIDTH" --output "$RESIZE_DIR" --quality "$RESIZE_QUALITY" 2>&1; then
         RESIZE_SUCCESS=$((RESIZE_SUCCESS + 1))
     else
         EXIT_CODE=$?
