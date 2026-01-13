@@ -1,0 +1,48 @@
+# Add PATH Installation Instructions - 2026-01-13
+
+## Session Summary
+
+Added instructions for installing imgpro globally via PATH using a wrapper script approach, and updated batch scripts to use the new positional file argument syntax for the resize command.
+
+## Work Completed
+
+### PATH Installation
+- Discussed options for adding imgpro to PATH (symlink, wrapper script, alias, pipx)
+- Chose wrapper script approach to preserve venv isolation
+- Created wrapper script at `/usr/local/bin/imgpro` that invokes venv Python
+- Updated README.md with "Add to PATH" installation section
+
+### Documentation Updates
+- Updated README.md setup instructions to include venv creation
+- Added batch processing example showing `imgpro` command in PATH
+- Added ASCII art logo (imgpro.txt)
+
+### Script Fixes
+- Updated `scripts/resize-all.sh` to use positional file argument instead of `--input`
+- Updated `scripts/prepare-instagram.sh` to use positional file argument instead of `--input`
+
+## Commits Made
+
+1. `d868cd1` - docs: add PATH installation instructions and update examples
+2. `effed00` - fix(scripts): use positional file argument for resize command
+
+## Key Files
+
+- `README.md` - Installation instructions and examples
+- `scripts/resize-all.sh` - Batch resize script
+- `scripts/prepare-instagram.sh` - Instagram preparation script
+- `imgpro.txt` - ASCII art logo
+
+## Notes
+
+The wrapper script approach was chosen because:
+- imgpro depends on Pillow and pillow-heif which are installed in a venv
+- A simple symlink would use system Python which may not have these dependencies
+- The wrapper script explicitly uses the venv's Python interpreter
+
+Wrapper script location: `/usr/local/bin/imgpro`
+Wrapper script content:
+```bash
+#!/bin/bash
+/path/to/imgpro/.venv/bin/python /path/to/imgpro/imgpro.py "$@"
+```
