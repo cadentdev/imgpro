@@ -60,9 +60,11 @@ A command-line tool for generating multiple resolutions of images to support res
    cd imgpro
    ```
 
-2. **Install dependencies**:
+2. **Create a virtual environment and install dependencies**:
 
    ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate
    pip3 install -r requirements.txt
    ```
 
@@ -70,6 +72,33 @@ A command-line tool for generating multiple resolutions of images to support res
 
    ```bash
    chmod +x imgpro.py
+   ```
+
+### Add to PATH (optional)
+
+To run `imgpro` from anywhere, create a wrapper script that uses the virtual environment:
+
+1. **Create the wrapper script**:
+
+   ```bash
+   sudo tee /usr/local/bin/imgpro > /dev/null << 'EOF'
+   #!/bin/bash
+   /path/to/imgpro/.venv/bin/python /path/to/imgpro/imgpro.py "$@"
+   EOF
+   ```
+
+   Replace `/path/to/imgpro` with your actual installation path.
+
+2. **Make it executable**:
+
+   ```bash
+   sudo chmod +x /usr/local/bin/imgpro
+   ```
+
+3. **Test it**:
+
+   ```bash
+   imgpro --help
    ```
 
 ### Dependencies
@@ -270,6 +299,12 @@ python3 imgpro.py resize banner.jpg --height 400,800
 #### Batch Processing with Shell Loop
 
 ```bash
+# Using imgpro in PATH (see "Add to PATH" section)
+for img in *.jpg; do
+  imgpro resize "$img" --width 1080 --quality 80
+done
+
+# Or using python3 directly
 for img in *.jpg; do
   python3 imgpro.py resize "$img" --width 300,600,900
 done
