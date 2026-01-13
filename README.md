@@ -390,6 +390,7 @@ The `scripts/` directory contains utility scripts for batch processing:
 | `organize-by-orientation.sh` | Organize by orientation or aspect ratio |
 | `organize-by-date.sh` | Organize into subdirectories by ISO date prefix |
 | `organize-all-by-date.sh` | Run date organization on all subdirectories |
+| `prepare-instagram.sh` | Automated Instagram image preparation workflow |
 
 See [scripts/README.md](scripts/README.md) for detailed usage.
 
@@ -641,6 +642,7 @@ See [PRD.md](PRD.md) for the complete product requirements and future enhancemen
 - v1.0: Info and resize commands with JPEG support
 - v1.1: Rename and convert commands, HEIC/HEIF support, sRGB conversion
 - v1.2: WebP output support, batch scripts, documentation updates
+- v1.2.1: **Breaking** - resize uses positional file arg, Instagram script, project rename
 
 ### Planned Features
 
@@ -666,6 +668,7 @@ imgpro/
 │   ├── organize-all-by-date.sh    # Run date organization on subdirs
 │   ├── organize-by-date.sh        # Organize by ISO date prefix
 │   ├── organize-by-orientation.sh # Organize by orientation/ratio
+│   ├── prepare-instagram.sh # Instagram image preparation workflow
 │   ├── rename-all.sh        # Batch rename with EXIF dates
 │   └── resize-all.sh        # Batch resize
 ├── tests/
@@ -684,6 +687,7 @@ imgpro/
 ├── requirements.txt         # Python dependencies
 ├── PRD.md                   # Product Requirements Document
 ├── TASKS.md                 # Task tracking and project status
+├── DONE.md                  # Completed tasks archive
 └── README.md                # This file
 ```
 

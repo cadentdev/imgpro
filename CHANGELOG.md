@@ -17,6 +17,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.1] - 2026-01-12
+
+### Changed
+- **BREAKING**: Resize command now uses positional `<file>` argument instead of `--input` flag
+  - Before: `imgpro resize --input photo.jpg --width 300`
+  - After: `imgpro resize photo.jpg --width 300`
+  - Aligns resize command with other commands (info, rename, convert) per PRD specification
+
+### Added
+- `scripts/prepare-instagram.sh` - Automated workflow for Instagram image preparation (convert, resize, organize)
+- `scripts/README.md` - Comprehensive documentation for batch processing scripts
+- `DONE.md` - Archive file for completed development tasks
+
+### Fixed
+- Renamed project from `imagepro` to `imgpro` for consistency
+
+### Documentation
+- Updated README with improved formatting and consistency
+- Updated all resize command examples to use positional file argument
+- Cleaned up CLAUDE.md and removed outdated CLI discrepancy section
+- Reorganized task tracking (TASKS.md cleaned up, completed tasks moved to DONE.md)
+
+---
+
 ## [1.2.0] - 2025-12-06
 
 ### Added
@@ -103,6 +127,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 1.2.1 | 2026-01-12 | Breaking: resize uses positional file arg, Instagram script, project rename |
 | 1.2.0 | 2025-12-06 | WebP support, batch scripts, sRGB conversion |
 | 1.1.0 | 2025-12-06 | Added HEIF/HEIC support, rename/convert commands |
 | 1.0.0 | 2025-11-12 | Initial release with info and resize commands |

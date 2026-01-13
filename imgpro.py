@@ -21,7 +21,7 @@ except ImportError:
     pass  # pillow-heif not installed, HEIF support unavailable
 
 
-__version__ = "1.2.0"
+__version__ = "1.2.1"
 
 # Supported output formats for convert command
 SUPPORTED_OUTPUT_FORMATS = {

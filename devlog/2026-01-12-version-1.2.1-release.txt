@@ -1,0 +1,59 @@
+# Version 1.2.1 Release - 2026-01-12
+
+## Session Summary
+
+Reviewed all changes since version 1.2.0 using git commits and GitHub PRs, then updated CHANGELOG.md, README.md, and imgpro.py to document and release version 1.2.1.
+
+## Work Completed
+
+### Version Documentation
+- Added comprehensive 1.2.1 changelog entry with breaking change notice
+- Updated Document History table in CHANGELOG.md
+- Updated Version History section in README.md
+- Bumped version from 1.2.0 to 1.2.1 in imgpro.py
+
+### README Updates
+- Added `prepare-instagram.sh` to Batch Scripts table
+- Added `prepare-instagram.sh` to Project Structure tree
+- Added `DONE.md` to Project Structure tree
+
+### Test Updates
+- Updated version string assertions in test_cli_direct.py
+- Verified all 311 tests pass
+
+## Changes Identified (PRs #10-#13)
+
+| PR | Description |
+|----|-------------|
+| #10 | Project renamed from imagepro to imgpro |
+| #11 | Added Instagram prep script, DONE.md, scripts/README.md |
+| #12 | Breaking: Resize command uses positional file argument |
+| #13 | Documentation updates for CLI change |
+
+## Key Files Modified
+
+- CHANGELOG.md - Added 1.2.1 section
+- README.md - Updated scripts table, project structure, version history
+- imgpro.py - Version bump to 1.2.1
+- tests/test_cli_direct.py - Updated version assertions
+
+## Version 1.2.1 Summary
+
+### Breaking Changes
+- Resize command now uses positional `<file>` argument instead of `--input` flag
+  - Before: `imgpro resize --input photo.jpg --width 300`
+  - After: `imgpro resize photo.jpg --width 300`
+
+### Added
+- `scripts/prepare-instagram.sh` - Automated Instagram image preparation workflow
+- `scripts/README.md` - Comprehensive documentation for batch scripts
+- `DONE.md` - Archive file for completed tasks
+
+### Fixed
+- Project renamed from imagepro to imgpro for consistency
+
+## Notes
+
+- All 311 tests pass after version update
+- The resize command change aligns it with other commands (info, rename, convert) per PRD
+- No git tags exist in this repository; consider adding v1.2.1 tag for release management

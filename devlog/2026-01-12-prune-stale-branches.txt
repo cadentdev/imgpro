@@ -1,0 +1,50 @@
+# Prune Stale Branches - 2026-01-12
+
+## Session Summary
+
+Cleaned up stale local and remote git branches, verified merged work, and updated the remote URL to reflect the repository rename from imagepro to imgpro.
+
+## Work Completed
+
+### Branch Cleanup
+- Ran `git fetch --prune` to sync remote-tracking refs
+- Identified 5 stale local branches that weren't showing as merged (due to squash merges)
+- Investigated each branch to verify content was already on main:
+  - `instagram-guide` - squash-merged via PR #8
+  - `feature/heif-support-and-docs` - HEIF work already on main
+  - `docs/info-requirements` - early PRD version, superseded
+  - `claude/rename-imagepro-to-imgpro-*` - rename work merged via PR #10
+  - `claude/review-imagepro-status-*` - convert/rename commands merged via PR #9
+- Deleted all 5 stale local branches
+
+### Remote Cleanup
+- Deleted merged `scripts/instagram` branch from remote (PR #11 was already merged)
+- Updated remote URL from `cadentdev/imagepro.git` to `cadentdev/imgpro.git`
+
+### Verification
+- Confirmed no "imagepro" references remain in code files (only in historical devlogs)
+- Verified convert and rename commands exist on main
+- Final state: only `main` branch locally and remotely
+
+## Commands Used
+
+```bash
+git fetch --prune
+git branch -a
+git branch --merged main
+git log main..<branch> --oneline
+git diff main..<branch> --stat
+git branch -D <branch>
+git push origin --delete scripts/instagram
+git remote set-url origin git@github.com:cadentdev/imgpro.git
+```
+
+## Key Insight
+
+Squash merges don't show up in `git branch --merged` because the commit SHAs differ. To verify squash-merged branches, compare file content with `git diff` rather than relying on merge detection.
+
+## Final Branch State
+
+| Branch | Location | Status |
+|--------|----------|--------|
+| main | local + remote | current, clean |
