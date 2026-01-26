@@ -941,6 +941,18 @@ def cmd_convert(args):
 
 def main():
     """Main entry point for imgpro CLI."""
+    # Save current directory to restore after processing
+    original_dir = os.getcwd()
+
+    try:
+        _main_impl()
+    finally:
+        # Restore original directory
+        os.chdir(original_dir)
+
+
+def _main_impl():
+    """Implementation of main CLI logic."""
     parser = argparse.ArgumentParser(
         description='ImgPro - Command-line tool for responsive image processing',
         epilog='Use "imgpro.py <command> --help" for more information about a command.'
