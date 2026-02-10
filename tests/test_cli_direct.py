@@ -497,11 +497,10 @@ class TestCmdResizeDirect:
             quality=90
         )
 
-        # cmd_resize calls sys.exit(0) when all sizes are skipped
-        with pytest.raises(SystemExit) as exc_info:
-            cmd_resize(args)
+        # cmd_resize returns empty list when all sizes are skipped
+        result = cmd_resize(args)
 
-        assert exc_info.value.code == 0
+        assert result == []
 
         captured = capsys.readouterr()
         assert 'No images created' in captured.out or 'Warning' in captured.out
@@ -557,7 +556,7 @@ class TestMainFunction:
         assert exc_info.value.code == 0
 
         captured = capsys.readouterr()
-        assert '1.2.1' in captured.out
+        assert '1.3.0' in captured.out
 
     def test_main_version_short_flag(self, monkeypatch, capsys):
         """Test main with -v flag."""
@@ -571,7 +570,7 @@ class TestMainFunction:
         assert exc_info.value.code == 0
 
         captured = capsys.readouterr()
-        assert '1.2.1' in captured.out
+        assert '1.3.0' in captured.out
 
     def test_main_help_flag(self, monkeypatch, capsys):
         """Test main with --help flag."""
