@@ -168,14 +168,16 @@ class TestConvertOutputDirectory:
     """Test output directory handling."""
 
     def test_default_output_directory(self, sample_square_image):
-        """Test that default output is ./converted/."""
+        """Test that default output is output/ next to source file."""
         # Run from temp dir to avoid polluting project
         import tempfile
         import shutil
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            # Copy source file to temp dir
-            src = Path(tmpdir) / "test.jpg"
+            # Create source in a subdirectory to verify source-relative behavior
+            src_dir = Path(tmpdir) / "photos"
+            src_dir.mkdir()
+            src = src_dir / "test.jpg"
             shutil.copy(sample_square_image, src)
 
             cmd = [sys.executable, str(Path(__file__).parent.parent / 'imgpro.py'),
@@ -183,7 +185,8 @@ class TestConvertOutputDirectory:
             result = subprocess.run(cmd, capture_output=True, text=True, cwd=tmpdir)
 
             assert result.returncode == 0
-            expected = Path(tmpdir) / "converted" / "test.png"
+            # Output should be next to source file, not in cwd
+            expected = src_dir / "output" / "test.png"
             assert expected.exists()
 
     def test_custom_output_directory(self, sample_square_image, temp_dir):

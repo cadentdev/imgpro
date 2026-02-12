@@ -784,15 +784,24 @@ def cmd_resize(args):
         print(f"Error: Cannot read image: {input_path}", file=sys.stderr)
         sys.exit(4)
 
+    # Resolve output directory (default: output/ next to source file)
+    # If input is already in an "output" dir (e.g., from chaining), reuse it
+    if args.output:
+        output_dir = args.output
+    elif input_path.parent.name == "output":
+        output_dir = str(input_path.parent)
+    else:
+        output_dir = str(input_path.parent / "output")
+
     # Print processing info
     print(f"Processing: {input_path.name} ({orig_width}x{orig_height})")
-    print(f"Output directory: {args.output}")
+    print(f"Output directory: {output_dir}")
     print()
 
     # Process the image
     created_files, skipped_sizes = resize_image(
         input_path,
-        args.output,
+        output_dir,
         sizes,
         dimension=dimension,
         quality=args.quality
@@ -943,8 +952,14 @@ def cmd_convert(args):
         print(f"Error: Cannot read image: {input_path}", file=sys.stderr)
         sys.exit(4)
 
-    # Determine output path
-    output_dir = Path(args.output)
+    # Determine output path (default: output/ next to source file)
+    # If input is already in an "output" dir (e.g., from chaining), reuse it
+    if args.output:
+        output_dir = Path(args.output)
+    elif input_path.parent.name == "output":
+        output_dir = input_path.parent
+    else:
+        output_dir = input_path.parent / "output"
     target_ext = get_target_extension(args.format)
     output_filename = input_path.stem + target_ext
     output_path = output_dir / output_filename
@@ -1071,8 +1086,8 @@ def _create_parser():
 
     resize_parser.add_argument(
         '--output',
-        default='./resized/',
-        help='Output directory (default: ./resized/)'
+        default=None,
+        help='Output directory (default: output/ next to source file)'
     )
 
     resize_parser.add_argument(
@@ -1135,8 +1150,8 @@ def _create_parser():
 
     convert_parser.add_argument(
         '--output',
-        default='./converted/',
-        help='Output directory (default: ./converted/)'
+        default=None,
+        help='Output directory (default: output/ next to source file)'
     )
 
     convert_parser.add_argument(
