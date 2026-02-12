@@ -23,9 +23,16 @@ python3 imgpro.py resize <file> --width <sizes> [--quality 90] [--output ./resiz
 python3 imgpro.py resize <file> --height <sizes> [--quality 90] [--output ./resized/]
 ```
 
+### Command Chaining
+```bash
+# Chain commands with '+' separator — output of each command feeds into the next
+python3 imgpro.py convert photo.heic --format jpeg --quality 80 + resize --width 1080
+python3 imgpro.py resize photo.jpg --width 300,600 + convert --format webp
+```
+
 ### Testing
 ```bash
-# Run all tests (307 total)
+# Run all tests (342 total)
 python -m pytest tests/ -v
 
 # Run specific test file
@@ -93,7 +100,8 @@ tests/
 ├── test_info_helpers.py  # Unit tests for info helper functions (36 tests)
 ├── test_info_cli.py      # CLI integration tests for info (33 tests)
 ├── test_resize_helpers.py # Unit tests for resize helpers (28 tests)
-└── test_resize_cli.py    # CLI integration tests for resize (27 tests)
+├── test_resize_cli.py    # CLI integration tests for resize (27 tests)
+└── test_chain_cli.py     # Command chaining integration tests (31 tests)
 ```
 
 ### TDD Workflow for New Features
@@ -108,7 +116,8 @@ tests/
 - **Resize command:** ~95% coverage (55 tests)
 - **Convert command:** 100% coverage (52 tests)
 - **Rename command:** 100% coverage (50 tests)
-- **Overall:** ~50% coverage (307 total tests)
+- **Command chaining:** 100% coverage (31 tests)
+- **Overall:** ~50% coverage (342 total tests)
 
 ## PRD and Task Tracking
 
@@ -141,7 +150,7 @@ Resized images use pattern: `{basename}_{size}.{ext}`
 ### Resize Command Specifics
 - **Format support:** JPEG only in v1.0 (validation enforced)
 - **Quality range:** 1-100 (default: 90)
-- **Output directory:** Default is `./resized/`, created if doesn't exist
+- **Output directory:** Default is `output/` next to source file, created if doesn't exist
 
 ## Adding New Commands
 
