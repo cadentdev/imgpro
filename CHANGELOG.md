@@ -17,6 +17,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.1] - 2026-02-12
+
+### Changed
+- **Refactored** codebase for improved maintainability:
+  - Named constants for all exit codes, quality defaults, and output directory name
+  - All imports moved to module top level
+  - Context managers on all `Image.open()` calls (fixed 3 resource leaks)
+  - `sys.exit()` removed from helper functions (raise exceptions instead)
+  - Shared helpers extracted: `resolve_output_dir()`, `validate_input_file()`, `ensure_rgb_for_jpeg()`
+  - `validate_jpeg()` (extension-only) eliminated in favor of content-based `get_image_format()`
+  - Parser construction modularized into per-command functions
+  - `cmd_info` output formatters extracted into dedicated functions
+- **Security hardening** (13 findings from adversarial red-team review):
+  - Path traversal protection on `--output` flag (rejects `..` components and null bytes)
+  - Decompression bomb limit: 100 megapixel cap + 500MB file size cap
+  - Symlink detection on input (warn) and output directories (reject)
+  - Resize size count capped at 20
+  - Overwrite warning in rename command
+  - Bare `except:` replaced with `except Exception:` in `serialize_exif_value()`
+  - Specific `PyCMSError` catch in `convert_to_srgb()`
+  - Partial output file cleanup on conversion failure
+  - Chain integrity verification for intermediate files
+  - GPS metadata stripped by default when EXIF is preserved in convert
+  - Secure temp files via `tempfile.mkstemp()` in case-insensitive rename
+  - ASCII-only validation for EXIF date prefix digits
+
+### Added
+- `tests/test_security.py` - 25 security-focused tests covering path traversal, decompression bombs, symlinks, size limits, GPS stripping, and more
+
+---
+
+## [1.3.0] - 2026-02-12
+
+### Added
+- **Command chaining** with `+` separator: output of each command feeds into the next
+  - `imgpro convert photo.heic --format jpeg + resize --width 1080`
+  - Multi-file fan-out: resize with multiple widths chains each output individually
+- **Source-relative output directory**: default `output/` is created next to the source file, not CWD
+  - Chained commands reuse the output directory when input is already in `output/`
+
+### Changed
+- Updated version to 1.3.0
+- Documentation updated for command chaining and source-relative output
+
+---
+
 ## [1.2.1] - 2026-01-12
 
 ### Changed
@@ -127,6 +173,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 1.3.1 | 2026-02-12 | Refactoring and security hardening (13 findings fixed, 25 security tests) |
+| 1.3.0 | 2026-02-12 | Command chaining with `+`, source-relative output directory |
 | 1.2.1 | 2026-01-12 | Breaking: resize uses positional file arg, Instagram script, project rename |
 | 1.2.0 | 2025-12-06 | WebP support, batch scripts, sRGB conversion |
 | 1.1.0 | 2025-12-06 | Added HEIF/HEIC support, rename/convert commands |

@@ -25,7 +25,7 @@ except ImportError:
     pass  # pillow-heif not installed, HEIF support unavailable
 
 
-__version__ = "1.3.0"
+__version__ = "1.3.1"
 
 # Exit codes
 EXIT_SUCCESS = 0

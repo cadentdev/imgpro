@@ -93,13 +93,15 @@ Add individual field flags for selective metadata output.
 
 ## 📊 Project Status
 
-**Current Version:** 1.2.0
-**Test Coverage:** ~50% (307 tests)
+**Current Version:** 1.3.1
+**Test Coverage:** 355 tests (330 functional + 25 security)
 
-- Info command: 100% (69 tests)
-- Resize command: ~95% (55 tests)
-- Convert command: 100% (52 tests)
-- Rename command: 100% (50 tests)
+- Info command: 100%
+- Resize command: ~95%
+- Convert command: 100%
+- Rename command: 100%
+- Command chaining: 100%
+- Security: 25 tests (path traversal, symlinks, decompression bombs, size limits, GPS stripping)
 
 **Next Priorities (in order):**
 
