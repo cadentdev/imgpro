@@ -299,28 +299,30 @@ class TestResizeOutputHandling:
     """Test output directory and file handling."""
 
     def test_resize_default_output_directory(self, temp_dir):
-        """Test that default output directory is ./resized/."""
+        """Test that default output directory is output/ next to source file."""
         from .fixtures import create_test_image_file
 
-        # Run from temp_dir
+        # Create image in a subdirectory to verify source-relative behavior
+        src_dir = temp_dir / 'photos'
+        src_dir.mkdir()
         img = Image.new('RGB', (1200, 800), color=(100, 150, 200))
-        img_path = temp_dir / 'test.jpg'
+        img_path = src_dir / 'test.jpg'
         img.save(img_path, 'JPEG', quality=90)
 
-        # Change to temp_dir and run
+        # Run from a different directory (temp_dir, not src_dir)
         import os
         old_cwd = os.getcwd()
         try:
             os.chdir(temp_dir)
             cmd = [sys.executable, str(Path(old_cwd) / 'imgpro.py'), 'resize',
-                   'test.jpg', '--width', '300']
+                   str(img_path), '--width', '300']
             result = subprocess.run(cmd, capture_output=True, text=True)
 
             assert result.returncode == 0
-            assert 'Output directory: ./resized/' in result.stdout
+            assert 'Output directory:' in result.stdout
 
-            # Verify file was created in ./resized/
-            assert (temp_dir / 'resized' / 'test_300.jpg').exists()
+            # Verify file was created in output/ next to source, not in cwd
+            assert (src_dir / 'output' / 'test_300.jpg').exists()
         finally:
             os.chdir(old_cwd)
 

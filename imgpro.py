@@ -21,7 +21,7 @@ except ImportError:
     pass  # pillow-heif not installed, HEIF support unavailable
 
 
-__version__ = "1.2.1"
+__version__ = "1.3.0"
 
 # Supported output formats for convert command
 SUPPORTED_OUTPUT_FORMATS = {
@@ -30,6 +30,31 @@ SUPPORTED_OUTPUT_FORMATS = {
     'png': '.png',
     'webp': '.webp',
 }
+
+
+def split_chain(argv):
+    """Split command-line arguments at '+' separators into command segments.
+
+    Args:
+        argv: List of command-line arguments (without the program name).
+
+    Returns:
+        List of argument segments, each a list of strings representing
+        one command invocation. Empty segments (from leading, trailing,
+        or consecutive '+' tokens) are discarded.
+    """
+    segments = []
+    current = []
+    for arg in argv:
+        if arg == '+':
+            if current:
+                segments.append(current)
+            current = []
+        else:
+            current.append(arg)
+    if current:
+        segments.append(current)
+    return segments
 
 
 def is_supported_output_format(format_str):
@@ -713,6 +738,9 @@ def cmd_info(args):
                     formatted_key = key.replace('_', ' ').title()
                     print(f"  {formatted_key}: {value}")
 
+    # Return input path for chaining (info is read-only, passes through)
+    return [str(input_path)]
+
 
 def cmd_resize(args):
     """Handle the resize subcommand."""
@@ -756,15 +784,24 @@ def cmd_resize(args):
         print(f"Error: Cannot read image: {input_path}", file=sys.stderr)
         sys.exit(4)
 
+    # Resolve output directory (default: output/ next to source file)
+    # If input is already in an "output" dir (e.g., from chaining), reuse it
+    if args.output:
+        output_dir = args.output
+    elif input_path.parent.name == "output":
+        output_dir = str(input_path.parent)
+    else:
+        output_dir = str(input_path.parent / "output")
+
     # Print processing info
     print(f"Processing: {input_path.name} ({orig_width}x{orig_height})")
-    print(f"Output directory: {args.output}")
+    print(f"Output directory: {output_dir}")
     print()
 
     # Process the image
     created_files, skipped_sizes = resize_image(
         input_path,
-        args.output,
+        output_dir,
         sizes,
         dimension=dimension,
         quality=args.quality
@@ -788,7 +825,9 @@ def cmd_resize(args):
         print(f"Successfully created {len(created_files)} image(s) from {input_path.name}")
     else:
         print(f"Warning: No images created (all sizes would require upscaling)")
-        sys.exit(0)
+
+    # Return list of created file paths for chaining
+    return [str(f['path']) for f in created_files]
 
 
 def cmd_rename(args):
@@ -832,9 +871,9 @@ def cmd_rename(args):
             # No EXIF date - skip with warning
             print(f"Warning: No EXIF date found in {input_path.name}, skipping",
                   file=sys.stderr)
-            # If only --prefix-exif-date was requested, exit successfully
+            # If only --prefix-exif-date was requested, return input (passthrough)
             if not args.ext:
-                sys.exit(0)
+                return [str(input_path)]
             # Otherwise continue with just the extension change
 
     # Build new filename
@@ -859,7 +898,7 @@ def cmd_rename(args):
     if input_path.resolve() == output_path.resolve():
         # Nothing to do - file already has correct name
         print(f"No change needed: {input_path.name}")
-        sys.exit(0)
+        return [str(input_path)]
 
     # Handle case-insensitive filesystems (macOS, Windows)
     # If the paths differ only by case, we need to use a temp file
@@ -872,7 +911,7 @@ def cmd_rename(args):
             os.remove(input_path)
             shutil.move(str(temp_path), str(output_path))
             print(f"Created: {output_path}")
-            return
+            return [str(output_path)]
     except OSError:
         pass  # Files are different, proceed normally
 
@@ -881,6 +920,9 @@ def cmd_rename(args):
 
     # Print success message
     print(f"Created: {output_path}")
+
+    # Return output path for chaining
+    return [str(output_path)]
 
 
 def cmd_convert(args):
@@ -910,8 +952,14 @@ def cmd_convert(args):
         print(f"Error: Cannot read image: {input_path}", file=sys.stderr)
         sys.exit(4)
 
-    # Determine output path
-    output_dir = Path(args.output)
+    # Determine output path (default: output/ next to source file)
+    # If input is already in an "output" dir (e.g., from chaining), reuse it
+    if args.output:
+        output_dir = Path(args.output)
+    elif input_path.parent.name == "output":
+        output_dir = input_path.parent
+    else:
+        output_dir = input_path.parent / "output"
     target_ext = get_target_extension(args.format)
     output_filename = input_path.stem + target_ext
     output_path = output_dir / output_filename
@@ -934,6 +982,7 @@ def cmd_convert(args):
 
     if success:
         print(f"Created: {output_path}")
+        return [str(output_path)]
     else:
         print(f"Error: Failed to convert image", file=sys.stderr)
         sys.exit(4)
@@ -951,11 +1000,21 @@ def main():
         os.chdir(original_dir)
 
 
-def _main_impl():
-    """Implementation of main CLI logic."""
+def _create_parser():
+    """Create and return the argument parser with all subcommands.
+
+    This is extracted from _main_impl() so the parser can be reused
+    for chain execution (parsing each segment independently).
+
+    Returns:
+        argparse.ArgumentParser with all subcommand parsers configured.
+    """
     parser = argparse.ArgumentParser(
         description='ImgPro - Command-line tool for responsive image processing',
-        epilog='Use "imgpro.py <command> --help" for more information about a command.'
+        epilog=(
+            'Use "imgpro.py <command> --help" for more information about a command.\n'
+            'Chain commands with +: imgpro resize img.jpg --width 300 + convert --format webp'
+        )
     )
 
     parser.add_argument('--version', '-v', action='version', version=f'ImgPro {__version__}')
@@ -1027,8 +1086,8 @@ def _main_impl():
 
     resize_parser.add_argument(
         '--output',
-        default='./resized/',
-        help='Output directory (default: ./resized/)'
+        default=None,
+        help='Output directory (default: output/ next to source file)'
     )
 
     resize_parser.add_argument(
@@ -1091,8 +1150,8 @@ def _main_impl():
 
     convert_parser.add_argument(
         '--output',
-        default='./converted/',
-        help='Output directory (default: ./converted/)'
+        default=None,
+        help='Output directory (default: output/ next to source file)'
     )
 
     convert_parser.add_argument(
@@ -1110,16 +1169,91 @@ def _main_impl():
 
     convert_parser.set_defaults(func=cmd_convert)
 
-    # Parse arguments
-    args = parser.parse_args()
+    return parser
 
-    # If no command specified, show help
-    if not args.command:
+
+def _execute_chain(segments):
+    """Execute a chain of commands, forwarding output file paths between steps.
+
+    For each segment after the first, the 'file' positional argument is
+    auto-injected from the previous command's output. When a command produces
+    multiple output files (e.g., resize with multiple widths), the next
+    command is executed once per file.
+
+    Args:
+        segments: List of argument segments from split_chain().
+                  Each segment is a list of strings (command + args).
+    """
+    parser = _create_parser()
+    output_files = None
+
+    for i, segment in enumerate(segments):
+        if output_files is not None:
+            # Chained command: inject file from previous output
+            if not output_files:
+                # Previous command produced no output files (e.g., all resize sizes skipped)
+                return
+            next_output_files = []
+            for input_file in output_files:
+                # Build full args: subcommand_name + input_file + remaining_args
+                full_segment = [segment[0], input_file] + segment[1:]
+                try:
+                    args = parser.parse_args(full_segment)
+                except SystemExit as e:
+                    sys.exit(e.code)
+                if not args.command:
+                    print("Error: Invalid command in chain", file=sys.stderr)
+                    sys.exit(2)
+                try:
+                    result = args.func(args)
+                except SystemExit as e:
+                    sys.exit(e.code)
+                if result:
+                    next_output_files.extend(result)
+            output_files = next_output_files
+        else:
+            # First command: parse normally
+            try:
+                args = parser.parse_args(segment)
+            except SystemExit as e:
+                sys.exit(e.code)
+            if not args.command:
+                parser.print_help()
+                sys.exit(0)
+            try:
+                output_files = args.func(args)
+            except SystemExit as e:
+                sys.exit(e.code)
+            if output_files is None:
+                output_files = []
+
+
+def _main_impl():
+    """Implementation of main CLI logic."""
+    argv = sys.argv[1:]
+    segments = split_chain(argv)
+
+    if not segments:
+        # No arguments at all - show help
+        parser = _create_parser()
         parser.print_help()
         sys.exit(0)
 
-    # Execute the command
-    args.func(args)
+    if len(segments) == 1:
+        # Single command (no chain) - use standard argparse flow
+        parser = _create_parser()
+        args = parser.parse_args()
+
+        # If no command specified, show help
+        if not args.command:
+            parser.print_help()
+            sys.exit(0)
+
+        # Execute the command
+        args.func(args)
+    else:
+        # Multiple commands chained with '+'
+        _execute_chain(segments)
 
 
 if __name__ == '__main__':

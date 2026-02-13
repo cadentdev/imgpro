@@ -101,6 +101,23 @@ To run `imgpro` from anywhere, create a wrapper script that uses the virtual env
    imgpro --help
    ```
 
+### Troubleshooting Installation
+
+**`python3 -m venv` fails** (common in minimal containers, Docker, Proxmox LXC):
+
+```bash
+# If you see: "ensurepip is not available"
+# Option 1: Install the venv package (requires sudo)
+sudo apt install python3.12-venv  # adjust version as needed
+
+# Option 2: Install without venv (no sudo required)
+curl -sS https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py
+python3 /tmp/get-pip.py --user --break-system-packages
+python3 -m pip install --user --break-system-packages pillow pillow-heif pytest
+```
+
+**`pip3: command not found`**: Bootstrap pip first using Option 2 above.
+
 ### Dependencies
 
 - **Pillow** (>=10.0.0): Python Imaging Library for image processing
@@ -255,7 +272,7 @@ python3 imgpro.py resize <file> --height <sizes> [options]
 
 - `--quality <1-100>` (default: 90)
   - JPEG compression quality
-- `--output <directory>` (default: `./resized/`)
+- `--output <directory>` (default: `output/` next to source file)
   - Directory for output images
 - `--help` / `-h`
   - Display usage information
@@ -340,7 +357,7 @@ python3 imgpro.py convert <file> --format <format> [options]
 **Optional:**
 
 - `--quality <1-100>` (default: 80): Quality for lossy formats
-- `--output <directory>` (default: `./converted/`): Output directory
+- `--output <directory>` (default: `output/` next to source file): Output directory
 - `--strip-exif`: Remove EXIF metadata from output
 
 ### Convert Examples
@@ -413,6 +430,64 @@ python3 imgpro.py rename photo.HEIC --ext --prefix-exif-date
 
 ---
 
+## Command Chaining
+
+Chain multiple commands together using the `+` separator. Each command's output files are automatically passed as input to the next command.
+
+### Chaining Syntax
+
+```bash
+python3 imgpro.py <command1> <file> [options] + <command2> [options] + <command3> [options]
+```
+
+### How It Works
+
+1. The first command processes the input file(s) and produces output files
+2. The `+` separator marks the boundary between commands
+3. Each subsequent command receives the previous command's output files as input
+4. Each command can have its own `--output` directory and options
+
+### Chaining Examples
+
+#### Convert and Resize (Instagram Workflow)
+
+```bash
+# Convert HEIC to JPEG at 80% quality, then resize to 1080px wide
+python3 imgpro.py convert photo.heic --format jpeg --quality 80 + resize --width 1080
+```
+
+#### Resize and Convert to WebP
+
+```bash
+# Resize to multiple widths, then convert all to WebP
+python3 imgpro.py resize photo.jpg --width 300,600,1200 + convert --format webp
+```
+
+#### Three-Step Pipeline
+
+```bash
+# Resize, convert to WebP, then fix extensions
+python3 imgpro.py resize photo.jpg --width 300 --output ./resized + convert --format webp --output ./converted + rename --ext --output ./final
+```
+
+#### Batch Chain Processing
+
+```bash
+# Process all HEIC files: convert to JPEG + resize for web
+for img in *.heic; do
+  python3 imgpro.py convert "$img" --format jpeg --quality 80 + resize --width 1080
+done
+```
+
+### Chaining Notes
+
+- If the first command fails (e.g., file not found), the entire chain aborts
+- If a command produces no output (e.g., resize skips upscaling), subsequent commands receive no input
+- Each command's `--output` directory defaults to `output/` next to the source file; chained commands reuse the same `output/` directory to avoid nesting
+- The `info` command passes through its input file to the next command in the chain
+
+---
+
 ## Batch Scripts
 
 The `scripts/` directory contains utility scripts for batch processing:
@@ -475,7 +550,7 @@ source .venv/bin/activate
 3. **Verify output**:
 
    ```bash
-   ls -lh resized/
+   ls -lh output/
    ```
 
 4. **Test upscaling prevention**:
@@ -536,7 +611,8 @@ python -m pytest tests/ --cov=imgpro --cov-report=term-missing
   - 27 CLI integration tests
 - **Convert command:** 100% coverage (52 tests)
 - **Rename command:** 100% coverage (50 tests)
-- **Overall project:** 307 total tests
+- **Command chaining:** 100% coverage (31 tests)
+- **Overall project:** 342 total tests
 
 **CI/CD:**
 
@@ -678,6 +754,7 @@ See [PRD.md](PRD.md) for the complete product requirements and future enhancemen
 - v1.1: Rename and convert commands, HEIC/HEIF support, sRGB conversion
 - v1.2: WebP output support, batch scripts, documentation updates
 - v1.2.1: **Breaking** - resize uses positional file arg, Instagram script, project rename
+- v1.3: Command chaining with `+` separator, source-relative `output/` default directory
 
 ### Planned Features
 
@@ -717,7 +794,8 @@ imgpro/
 │   ├── test_rename_cli.py   # Rename command integration tests
 │   ├── test_rename_helpers.py # Rename command unit tests
 │   ├── test_resize_cli.py   # Resize command integration tests
-│   └── test_resize_helpers.py # Resize command unit tests
+│   ├── test_resize_helpers.py # Resize command unit tests
+│   └── test_chain_cli.py    # Command chaining integration tests
 ├── imgpro.py              # Main CLI tool
 ├── requirements.txt         # Python dependencies
 ├── PRD.md                   # Product Requirements Document
