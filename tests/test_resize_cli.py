@@ -421,7 +421,7 @@ class TestResizeOutputFormat:
         assert 'Processing:' in stdout
         assert 'photo.jpg' in stdout
         assert '1920x1080' in stdout
-        assert f'Output directory: {output_dir}' in stdout
+        assert f'Output directory: {output_dir.resolve()}' in stdout
 
     def test_resize_shows_created_files(self, temp_dir):
         """Test that created files are listed."""
