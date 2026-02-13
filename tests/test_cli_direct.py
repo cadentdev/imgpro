@@ -754,10 +754,10 @@ class TestCmdInfoUncommonRatioCoverage:
 
 
 class TestCmdResizeCorruptImage:
-    """Test cmd_resize with corrupt JPEG to cover lines 479-481."""
+    """Test cmd_resize with corrupt JPEG file."""
 
     def test_cmd_resize_corrupt_jpeg(self, temp_dir):
-        """Test cmd_resize with corrupt JPEG file (covers lines 479-481)."""
+        """Test cmd_resize with corrupt JPEG file gets unsupported format error."""
         from imgpro import cmd_resize
 
         # Create a file with .jpg extension but invalid content
@@ -775,7 +775,8 @@ class TestCmdResizeCorruptImage:
         with pytest.raises(SystemExit) as exc_info:
             cmd_resize(args)
 
-        assert exc_info.value.code == 4
+        # Content-based validation: corrupt file is not recognized as JPEG
+        assert exc_info.value.code == 1
 
 
 class TestResizeTransparencyModes:
