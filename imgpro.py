@@ -8,10 +8,14 @@ import sys
 from pathlib import Path
 from PIL import Image
 from PIL import ImageCms
+from PIL.ExifTags import TAGS
+from PIL.TiffImagePlugin import IFDRational
 import os
 import json
 import math
 import io
+import shutil
+import tempfile
 
 # Register HEIF opener if pillow-heif is available
 try:
@@ -21,7 +25,29 @@ except ImportError:
     pass  # pillow-heif not installed, HEIF support unavailable
 
 
-__version__ = "1.3.0"
+__version__ = "1.3.1"
+
+# Exit codes
+EXIT_SUCCESS = 0
+EXIT_UNSUPPORTED_FORMAT = 1
+EXIT_INVALID_ARGS = 2
+EXIT_FILE_NOT_FOUND = 3
+EXIT_READ_ERROR = 4
+
+# Security limits
+MAX_IMAGE_PIXELS = 100_000_000  # 100 megapixels — generous but safe
+MAX_INPUT_FILE_SIZE = 500 * 1024 * 1024  # 500 MB
+MAX_SIZES_COUNT = 20  # Maximum number of sizes in a single resize operation
+
+# Apply decompression bomb protection globally
+Image.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
+
+# Quality defaults
+DEFAULT_RESIZE_QUALITY = 90
+DEFAULT_CONVERT_QUALITY = 80
+
+# Output directory
+DEFAULT_OUTPUT_DIR = "output"
 
 # Supported output formats for convert command
 SUPPORTED_OUTPUT_FORMATS = {
@@ -83,6 +109,147 @@ def get_target_extension(format_str):
     return SUPPORTED_OUTPUT_FORMATS.get(format_str.lower())
 
 
+def ensure_rgb_for_jpeg(img):
+    """
+    Convert image to RGB mode suitable for JPEG output.
+
+    Handles RGBA, LA, and P (palette) modes by compositing onto a white
+    background. Other non-RGB modes are converted directly.
+
+    Args:
+        img: PIL Image object
+
+    Returns:
+        PIL Image object in RGB mode
+    """
+    if img.mode in ('RGBA', 'LA', 'P'):
+        if img.mode == 'P':
+            img = img.convert('RGBA')
+        background = Image.new('RGB', img.size, (255, 255, 255))
+        if img.mode in ('RGBA', 'LA'):
+            if img.mode == 'LA':
+                img = img.convert('RGBA')
+            background.paste(img, mask=img.split()[-1])
+        img = background
+    elif img.mode != 'RGB':
+        img = img.convert('RGB')
+    return img
+
+
+def validate_output_path(output_str, input_path):
+    """
+    Validate an output path for security concerns.
+
+    Checks for path traversal components, null bytes, and warns if the
+    resolved output is outside the input file's parent tree.
+
+    Args:
+        output_str: The raw --output argument string
+        input_path: Path object of the input file
+
+    Returns:
+        Path object for the validated output
+
+    Raises:
+        SystemExit if the path contains null bytes or '..' components
+    """
+    # Reject null bytes
+    if '\x00' in output_str:
+        print("Error: Output path contains null bytes", file=sys.stderr)
+        sys.exit(EXIT_INVALID_ARGS)
+
+    # Reject path traversal components in the original string
+    # Check each component of the path for literal '..'
+    raw_path = Path(output_str)
+    for part in raw_path.parts:
+        if part == '..':
+            print("Error: Output path contains '..' traversal components", file=sys.stderr)
+            sys.exit(EXIT_INVALID_ARGS)
+
+    resolved = raw_path.resolve()
+
+    # Warn (but don't block) if absolute path is outside input's parent tree
+    if raw_path.is_absolute():
+        input_parent = input_path.resolve().parent
+        try:
+            resolved.relative_to(input_parent)
+        except ValueError:
+            print(f"Warning: Output path '{output_str}' is outside the input file's directory tree",
+                  file=sys.stderr)
+
+    return resolved
+
+
+def resolve_output_dir(args_output, input_path):
+    """
+    Resolve the output directory from CLI args and input path.
+
+    If args_output is provided, use it (with security validation).
+    If the input is already in an "output" directory (e.g., from chaining),
+    reuse that directory. Otherwise, create an "output" subdirectory next
+    to the source file.
+
+    Args:
+        args_output: The --output argument value (str or None)
+        input_path: Path object of the input file
+
+    Returns:
+        Path object for the output directory
+    """
+    if args_output:
+        output_path = validate_output_path(args_output, input_path)
+        # Reject if the original output path is a symlink (check before resolution)
+        original_path = Path(args_output)
+        if original_path.is_symlink():
+            print("Error: Output directory is a symlink — refusing to write", file=sys.stderr)
+            sys.exit(EXIT_INVALID_ARGS)
+        return output_path
+    elif input_path.parent.name == DEFAULT_OUTPUT_DIR:
+        return input_path.parent
+    else:
+        return input_path.parent / DEFAULT_OUTPUT_DIR
+
+
+def validate_input_file(filepath):
+    """
+    Validate that an input file exists, is within size limits, and return it as a Path.
+
+    Checks: existence, symlink warning, file size limit.
+
+    Args:
+        filepath: String or Path to the input file
+
+    Returns:
+        Path object if file exists and passes validation
+
+    Raises:
+        SystemExit with EXIT_FILE_NOT_FOUND if file doesn't exist
+        SystemExit with EXIT_INVALID_ARGS if file exceeds size limit
+    """
+    path = Path(filepath)
+    if not path.exists():
+        print(f"Error: File not found: {filepath}", file=sys.stderr)
+        sys.exit(EXIT_FILE_NOT_FOUND)
+
+    # Warn if input is a symlink (don't block — may be legitimate)
+    if path.is_symlink():
+        print(f"Warning: Input file is a symlink: {filepath}", file=sys.stderr)
+
+    # Reject files exceeding size limit
+    try:
+        file_size = os.path.getsize(path)
+        if file_size > MAX_INPUT_FILE_SIZE:
+            size_mb = file_size / (1024 * 1024)
+            limit_mb = MAX_INPUT_FILE_SIZE / (1024 * 1024)
+            print(f"Error: File size ({size_mb:.0f} MB) exceeds limit ({limit_mb:.0f} MB): {filepath}",
+                  file=sys.stderr)
+            sys.exit(EXIT_INVALID_ARGS)
+    except OSError:
+        pass  # If we can't stat the file, let later operations handle it
+
+    return path
+
+
 def convert_to_srgb(img):
     """
     Convert image to sRGB color profile if it has a different profile.
@@ -106,13 +273,33 @@ def convert_to_srgb(img):
                 img, src_profile, srgb_profile,
                 outputMode='RGB' if img.mode == 'RGB' else img.mode
             )
-    except Exception:
-        # If conversion fails, just return the original image
+    except ImageCms.PyCMSError:
+        # If color management conversion fails, return the original image
         pass
     return img
 
 
-def convert_image(source_path, output_path, target_format, quality=80, strip_exif=False, convert_to_srgb_profile=True):
+def _strip_gps_from_exif(exif_data):
+    """
+    Remove GPS metadata (tag 34853/0x8825) from EXIF data.
+
+    GPS data contains location information that is a privacy risk.
+    This is stripped by default when EXIF is preserved during conversion.
+
+    Args:
+        exif_data: PIL Exif object
+
+    Returns:
+        PIL Exif object with GPS data removed, or original if no GPS present
+    """
+    GPS_IFD_TAG = 0x8825  # GPSInfo tag
+    if exif_data and GPS_IFD_TAG in exif_data:
+        del exif_data[GPS_IFD_TAG]
+        return exif_data, True
+    return exif_data, False
+
+
+def convert_image(source_path, output_path, target_format, quality=DEFAULT_CONVERT_QUALITY, strip_exif=False, convert_to_srgb_profile=True):
     """
     Convert an image to a different format.
 
@@ -131,6 +318,12 @@ def convert_image(source_path, output_path, target_format, quality=80, strip_exi
         source_path = Path(source_path)
         output_path = Path(output_path)
 
+        # Refuse to write through a symlink output path
+        if output_path.exists() and output_path.is_symlink():
+            print(f"Error: Output path is a symlink — refusing to write: {output_path}",
+                  file=sys.stderr)
+            return False
+
         with Image.open(source_path) as img:
             # Get EXIF data if we need to preserve it
             exif_data = None
@@ -140,27 +333,20 @@ def convert_image(source_path, output_path, target_format, quality=80, strip_exi
                 except Exception:
                     exif_data = None
 
+                # Strip GPS data by default when preserving EXIF (privacy protection)
+                if exif_data:
+                    exif_data, gps_stripped = _strip_gps_from_exif(exif_data)
+                    if gps_stripped:
+                        print("Note: GPS metadata stripped from output (use --keep-gps to preserve)",
+                              file=sys.stderr)
+
             # Convert to sRGB if requested
             if convert_to_srgb_profile:
                 img = convert_to_srgb(img)
 
             # Handle color mode conversion for JPEG output
             if target_format.lower() in ('jpeg', 'jpg'):
-                if img.mode in ('RGBA', 'LA', 'P'):
-                    # Convert with white background for transparency
-                    if img.mode == 'P':
-                        img = img.convert('RGBA')
-                    background = Image.new('RGB', img.size, (255, 255, 255))
-                    if img.mode in ('RGBA', 'LA'):
-                        # Handle alpha channel
-                        if img.mode == 'LA':
-                            img = img.convert('RGBA')
-                        background.paste(img, mask=img.split()[-1])
-                        img = background
-                    else:
-                        img = img.convert('RGB')
-                elif img.mode != 'RGB':
-                    img = img.convert('RGB')
+                img = ensure_rgb_for_jpeg(img)
 
             # Prepare save arguments
             save_kwargs = {}
@@ -190,27 +376,37 @@ def convert_image(source_path, output_path, target_format, quality=80, strip_exi
 
         return True
 
+    except Image.DecompressionBombError:
+        print(f"Error: Image exceeds pixel limit ({MAX_IMAGE_PIXELS:,} pixels) — "
+              "possible decompression bomb", file=sys.stderr)
+        return False
     except Exception:
+        # Clean up partial output files if they were created
+        try:
+            if output_path.exists():
+                output_path.unlink()
+        except OSError:
+            pass
         return False
 
 
 def parse_sizes(size_str):
-    """Parse comma-separated list of sizes into integers."""
+    """Parse comma-separated list of sizes into integers.
+
+    Enforces MAX_SIZES_COUNT to prevent unbounded resize operations.
+    """
     try:
         sizes = [int(s.strip()) for s in size_str.split(',')]
         if any(s <= 0 for s in sizes):
             raise ValueError("Sizes must be positive integers")
+        if len(sizes) > MAX_SIZES_COUNT:
+            raise ValueError(
+                f"Too many sizes ({len(sizes)}). Maximum is {MAX_SIZES_COUNT}"
+            )
         return sizes
     except ValueError as e:
         raise argparse.ArgumentTypeError(f"Invalid size format: {e}")
 
-
-def validate_jpeg(filepath):
-    """Validate that the file is a JPEG."""
-    valid_extensions = ['.jpg', '.jpeg', '.JPG', '.JPEG']
-    if filepath.suffix not in valid_extensions:
-        return False
-    return True
 
 
 def get_file_size_kb(filepath):
@@ -292,20 +488,19 @@ def extract_exif_data(filepath):
         Dictionary of EXIF data or None if no EXIF present
     """
     try:
-        img = Image.open(filepath)
-        exif = img.getexif()
+        with Image.open(filepath) as img:
+            exif = img.getexif()
 
-        if not exif:
-            return None
+            if not exif:
+                return None
 
-        # Convert to dictionary with tag names
-        from PIL.ExifTags import TAGS
-        exif_dict = {}
-        for tag_id, value in exif.items():
-            tag_name = TAGS.get(tag_id, tag_id)
-            exif_dict[tag_name] = value
+            # Convert to dictionary with tag names
+            exif_dict = {}
+            for tag_id, value in exif.items():
+                tag_name = TAGS.get(tag_id, tag_id)
+                exif_dict[tag_name] = value
 
-        return exif_dict if exif_dict else None
+            return exif_dict if exif_dict else None
 
     except Exception:
         return None
@@ -410,9 +605,9 @@ def format_exif_date_prefix(exif_date_str):
         date_components = date_part.split(':')
         if len(date_components) != 3:
             return None
-        # Check that all components are numeric
+        # Check that all components are ASCII numeric (reject Unicode digits)
         for comp in date_components:
-            if not comp.isdigit():
+            if not comp.isascii() or not comp.isdigit():
                 return None
 
         # Validate time format: must be HH:MM:SS
@@ -420,7 +615,7 @@ def format_exif_date_prefix(exif_date_str):
         if len(time_components) != 3:
             return None
         for comp in time_components:
-            if not comp.isdigit():
+            if not comp.isascii() or not comp.isdigit():
                 return None
 
         formatted_date = date_part.replace(':', '-')  # YYYY:MM:DD -> YYYY-MM-DD
@@ -495,10 +690,9 @@ def get_image_info(filepath):
     filepath = Path(filepath)
 
     # Open image
-    img = Image.open(filepath)
-
-    # Get dimensions (EXIF orientation is already handled by Pillow in most cases)
-    width, height = img.size
+    with Image.open(filepath) as img:
+        # Get dimensions (EXIF orientation is already handled by Pillow in most cases)
+        width, height = img.size
 
     # Calculate ratios and orientation
     ratio_raw = calculate_aspect_ratio(width, height)
@@ -520,6 +714,8 @@ def get_image_info(filepath):
     if exif_curated and 'date_taken' in exif_curated:
         creation_date = exif_curated['date_taken']
 
+    # Note: Full path disclosure in info output is intentional — this is a CLI tool
+    # where the user already knows the file path. Not a security concern.
     return {
         'filename': filepath.name,
         'path': str(filepath.absolute()),
@@ -536,7 +732,7 @@ def get_image_info(filepath):
     }
 
 
-def resize_image(input_path, output_dir, sizes, dimension='width', quality=90):
+def resize_image(input_path, output_dir, sizes, dimension='width', quality=DEFAULT_RESIZE_QUALITY):
     """
     Resize an image to multiple sizes.
 
@@ -553,80 +749,80 @@ def resize_image(input_path, output_dir, sizes, dimension='width', quality=90):
     # Open and validate image
     try:
         img = Image.open(input_path)
+    except Image.DecompressionBombError:
+        raise OSError(
+            f"Image exceeds pixel limit ({MAX_IMAGE_PIXELS:,} pixels) — "
+            "possible decompression bomb"
+        )
     except Exception as e:
-        print(f"Error: Cannot read image: {input_path}", file=sys.stderr)
-        print(f"Details: {e}", file=sys.stderr)
-        sys.exit(4)
+        raise OSError(f"Cannot read image: {input_path} ({e})") from e
 
-    # Get original dimensions
-    orig_width, orig_height = img.size
+    with img:
+        # Get original dimensions
+        orig_width, orig_height = img.size
 
-    # Prepare output
-    output_dir = Path(output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
+        # Prepare output
+        output_dir = Path(output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Get base name and extension
-    base_name = input_path.stem
-    extension = input_path.suffix
+        # Get base name and extension
+        base_name = input_path.stem
+        extension = input_path.suffix
 
-    created_files = []
-    skipped_sizes = []
+        created_files = []
+        skipped_sizes = []
 
-    # Process each size
-    for size in sizes:
-        # Calculate new dimensions
-        if dimension == 'width':
-            if size > orig_width:
-                skipped_sizes.append((size, f"original is only {orig_width}px wide"))
+        # Process each size
+        for size in sizes:
+            # Calculate new dimensions
+            if dimension == 'width':
+                if size > orig_width:
+                    skipped_sizes.append((size, f"original is only {orig_width}px wide"))
+                    continue
+                new_width = size
+                new_height = int((size / orig_width) * orig_height)
+            else:  # height
+                if size > orig_height:
+                    skipped_sizes.append((size, f"original is only {orig_height}px tall"))
+                    continue
+                new_height = size
+                new_width = int((size / orig_height) * orig_width)
+
+            # Resize image using high-quality Lanczos resampling
+            resized_img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+
+            # Prepare output filename
+            output_filename = f"{base_name}_{size}{extension}"
+            output_path = output_dir / output_filename
+
+            # Refuse to write through a symlink output path
+            if output_path.exists() and output_path.is_symlink():
+                print(f"Error: Output path is a symlink — refusing to write: {output_path}",
+                      file=sys.stderr)
                 continue
-            new_width = size
-            new_height = int((size / orig_width) * orig_height)
-        else:  # height
-            if size > orig_height:
-                skipped_sizes.append((size, f"original is only {orig_height}px tall"))
-                continue
-            new_height = size
-            new_width = int((size / orig_height) * orig_width)
 
-        # Resize image using high-quality Lanczos resampling
-        resized_img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            # Strip EXIF by converting to RGB if needed and not saving exif
+            resized_img = ensure_rgb_for_jpeg(resized_img)
 
-        # Prepare output filename
-        output_filename = f"{base_name}_{size}{extension}"
-        output_path = output_dir / output_filename
+            # Save without EXIF data
+            resized_img.save(output_path, 'JPEG', quality=quality, optimize=True)
 
-        # Strip EXIF by converting to RGB if needed and not saving exif
-        if resized_img.mode in ('RGBA', 'LA', 'P'):
-            # Handle transparency by converting to RGB with white background
-            background = Image.new('RGB', resized_img.size, (255, 255, 255))
-            if resized_img.mode == 'P':
-                resized_img = resized_img.convert('RGBA')
-            background.paste(resized_img, mask=resized_img.split()[-1] if resized_img.mode in ('RGBA', 'LA') else None)
-            resized_img = background
-        elif resized_img.mode != 'RGB':
-            resized_img = resized_img.convert('RGB')
+            # Get file size
+            file_size = get_file_size_kb(output_path)
 
-        # Save without EXIF data
-        resized_img.save(output_path, 'JPEG', quality=quality, optimize=True)
-
-        # Get file size
-        file_size = get_file_size_kb(output_path)
-
-        created_files.append({
-            'path': output_path,
-            'filename': output_filename,
-            'width': new_width,
-            'height': new_height,
-            'size_kb': file_size
-        })
+            created_files.append({
+                'path': output_path,
+                'filename': output_filename,
+                'width': new_width,
+                'height': new_height,
+                'size_kb': file_size
+            })
 
     return created_files, skipped_sizes
 
 
 def serialize_exif_value(value):
     """Convert EXIF values to JSON-serializable types."""
-    from PIL.TiffImagePlugin import IFDRational
-
     if isinstance(value, IFDRational):
         # Convert IFDRational to float
         return float(value)
@@ -634,7 +830,7 @@ def serialize_exif_value(value):
         # Convert bytes to string
         try:
             return value.decode('utf-8', errors='ignore')
-        except:
+        except Exception:
             return str(value)
     elif isinstance(value, (tuple, list)):
         # Recursively handle tuples and lists
@@ -647,96 +843,110 @@ def serialize_exif_value(value):
         return value
 
 
+def _format_info_json(info, args):
+    """Format image info as JSON and print it.
+
+    Args:
+        info: Dictionary from get_image_info()
+        args: Parsed CLI arguments (uses exif_all flag)
+    """
+    output_data = {
+        'filename': info['filename'],
+        'path': info['path'],
+        'width': info['width'],
+        'height': info['height'],
+        'orientation': info['orientation'],
+        'ratio_raw': info['ratio_raw'],
+        'common_ratio': info['common_ratio'],
+        'size_kb': round(info['size_kb'], 2),
+        'has_exif': info['has_exif'],
+        'creation_date': info['creation_date'] if info['creation_date'] else None,
+    }
+
+    # Add EXIF data based on flags (serialize for JSON compatibility)
+    if args.exif_all and info['exif_all']:
+        output_data['exif'] = {k: serialize_exif_value(v) for k, v in info['exif_all'].items()}
+    elif info['exif']:
+        output_data['exif'] = {k: serialize_exif_value(v) for k, v in info['exif'].items()}
+    else:
+        output_data['exif'] = None
+
+    print(json.dumps(output_data))
+
+
+def _format_info_csv(info):
+    """Format image info as a single CSV line and print it.
+
+    Args:
+        info: Dictionary from get_image_info()
+    """
+    fields = [
+        info['filename'],
+        str(info['width']),
+        str(info['height']),
+        info['orientation'],
+        info['ratio_raw'],
+        info['common_ratio'],
+        f"{info['size_kb']:.2f}",
+        info['creation_date'] if info['creation_date'] else ''
+    ]
+    print(','.join(fields))
+
+
+def _format_info_human(info, args):
+    """Format image info as human-readable text and print it.
+
+    Args:
+        info: Dictionary from get_image_info()
+        args: Parsed CLI arguments (uses exif, exif_all flags)
+    """
+    print(f"File: {info['filename']}")
+    print(f"Path: {info['path']}")
+    print(f"Dimensions: {info['width']}x{info['height']}")
+    print(f"Orientation: {info['orientation']}")
+    print(f"Aspect Ratio: {info['ratio_raw']}", end='')
+    if info['common_ratio'] != 'none':
+        print(f" ({info['common_ratio']})")
+    else:
+        print()
+    print(f"File Size: {info['size_kb']:.2f} KB")
+    print(f"EXIF Present: {'Yes' if info['has_exif'] else 'No'}")
+
+    # Show EXIF data if requested or if present
+    if (args.exif or args.exif_all) and info['has_exif']:
+        print("\nEXIF Data:")
+        if args.exif_all and info['exif_all']:
+            for key, value in info['exif_all'].items():
+                print(f"  {key}: {value}")
+        elif info['exif']:
+            for key, value in info['exif'].items():
+                formatted_key = key.replace('_', ' ').title()
+                print(f"  {formatted_key}: {value}")
+
+
 def cmd_info(args):
     """Handle the info subcommand."""
-    input_path = Path(args.file)
-
-    # Validate input file exists
-    if not input_path.exists():
-        print(f"Error: File not found: {args.file}", file=sys.stderr)
-        sys.exit(3)
+    input_path = validate_input_file(args.file)
 
     # Try to get image info
     try:
         info = get_image_info(input_path)
+    except Image.DecompressionBombError:
+        print(f"Error: Image exceeds pixel limit ({MAX_IMAGE_PIXELS:,} pixels) — "
+              "possible decompression bomb", file=sys.stderr)
+        sys.exit(EXIT_UNSUPPORTED_FORMAT)
     except Exception as e:
         # If Pillow can't open it, it's unsupported or corrupt
         print(f"Error: Unsupported or unreadable image format: {args.file}", file=sys.stderr)
-        sys.exit(1)
+        sys.exit(EXIT_UNSUPPORTED_FORMAT)
 
     # Determine output format
     if args.json:
-        # JSON output
-        output_data = {
-            'filename': info['filename'],
-            'path': info['path'],
-            'width': info['width'],
-            'height': info['height'],
-            'orientation': info['orientation'],
-            'ratio_raw': info['ratio_raw'],
-            'common_ratio': info['common_ratio'],
-            'size_kb': round(info['size_kb'], 2),
-            'has_exif': info['has_exif'],
-        }
-
-        # Add creation date if available
-        if info['creation_date']:
-            output_data['creation_date'] = info['creation_date']
-        else:
-            output_data['creation_date'] = None
-
-        # Add EXIF data based on flags (serialize for JSON compatibility)
-        if args.exif_all and info['exif_all']:
-            output_data['exif'] = {k: serialize_exif_value(v) for k, v in info['exif_all'].items()}
-        elif info['exif']:
-            output_data['exif'] = {k: serialize_exif_value(v) for k, v in info['exif'].items()}
-        else:
-            output_data['exif'] = None
-
-        print(json.dumps(output_data))
-
+        _format_info_json(info, args)
     elif args.short:
-        # CSV short output
-        # Order: filename,width,height,orientation,ratio_raw,common_ratio,size_kb,creation_date
-        fields = [
-            info['filename'],
-            str(info['width']),
-            str(info['height']),
-            info['orientation'],
-            info['ratio_raw'],
-            info['common_ratio'],
-            f"{info['size_kb']:.2f}",
-            info['creation_date'] if info['creation_date'] else ''
-        ]
-        print(','.join(fields))
-
+        _format_info_csv(info)
     else:
-        # Default human-readable output
-        print(f"File: {info['filename']}")
-        print(f"Path: {info['path']}")
-        print(f"Dimensions: {info['width']}x{info['height']}")
-        print(f"Orientation: {info['orientation']}")
-        print(f"Aspect Ratio: {info['ratio_raw']}", end='')
-        if info['common_ratio'] != 'none':
-            print(f" ({info['common_ratio']})")
-        else:
-            print()
-        print(f"File Size: {info['size_kb']:.2f} KB")
-        print(f"EXIF Present: {'Yes' if info['has_exif'] else 'No'}")
-
-        # Show EXIF data if requested or if present
-        if (args.exif or args.exif_all) and info['has_exif']:
-            print("\nEXIF Data:")
-            if args.exif_all and info['exif_all']:
-                # Show all EXIF tags
-                for key, value in info['exif_all'].items():
-                    print(f"  {key}: {value}")
-            elif info['exif']:
-                # Show curated EXIF
-                for key, value in info['exif'].items():
-                    # Format key nicely
-                    formatted_key = key.replace('_', ' ').title()
-                    print(f"  {formatted_key}: {value}")
+        _format_info_human(info, args)
 
     # Return input path for chaining (info is read-only, passes through)
     return [str(input_path)]
@@ -744,23 +954,19 @@ def cmd_info(args):
 
 def cmd_resize(args):
     """Handle the resize subcommand."""
-    input_path = Path(args.file)
+    input_path = validate_input_file(args.file)
 
-    # Validate input file exists
-    if not input_path.exists():
-        print(f"Error: File not found: {args.file}", file=sys.stderr)
-        sys.exit(3)
-
-    # Validate it's a JPEG
-    if not validate_jpeg(input_path):
+    # Validate it's a JPEG (content-based check)
+    image_format = get_image_format(input_path)
+    if image_format != 'JPEG':
         print(f"Error: Unsupported format. Version 1.0 supports JPEG only.", file=sys.stderr)
         print(f"Supported extensions: .jpg, .jpeg, .JPG, .JPEG", file=sys.stderr)
-        sys.exit(1)
+        sys.exit(EXIT_UNSUPPORTED_FORMAT)
 
     # Determine dimension and sizes
     if args.width and args.height:
         print("Error: Cannot specify both --width and --height", file=sys.stderr)
-        sys.exit(2)
+        sys.exit(EXIT_INVALID_ARGS)
     elif args.width:
         dimension = 'width'
         sizes = parse_sizes(args.width)
@@ -769,12 +975,12 @@ def cmd_resize(args):
         sizes = parse_sizes(args.height)
     else:
         print("Error: Must specify either --width or --height", file=sys.stderr)
-        sys.exit(2)
+        sys.exit(EXIT_INVALID_ARGS)
 
     # Validate quality
     if not (1 <= args.quality <= 100):
         print("Error: Quality must be between 1-100", file=sys.stderr)
-        sys.exit(2)
+        sys.exit(EXIT_INVALID_ARGS)
 
     # Get image dimensions for output
     try:
@@ -782,16 +988,10 @@ def cmd_resize(args):
             orig_width, orig_height = img.size
     except Exception as e:
         print(f"Error: Cannot read image: {input_path}", file=sys.stderr)
-        sys.exit(4)
+        sys.exit(EXIT_READ_ERROR)
 
-    # Resolve output directory (default: output/ next to source file)
-    # If input is already in an "output" dir (e.g., from chaining), reuse it
-    if args.output:
-        output_dir = args.output
-    elif input_path.parent.name == "output":
-        output_dir = str(input_path.parent)
-    else:
-        output_dir = str(input_path.parent / "output")
+    # Resolve output directory
+    output_dir = resolve_output_dir(args.output, input_path)
 
     # Print processing info
     print(f"Processing: {input_path.name} ({orig_width}x{orig_height})")
@@ -799,13 +999,17 @@ def cmd_resize(args):
     print()
 
     # Process the image
-    created_files, skipped_sizes = resize_image(
-        input_path,
-        output_dir,
-        sizes,
-        dimension=dimension,
-        quality=args.quality
-    )
+    try:
+        created_files, skipped_sizes = resize_image(
+            input_path,
+            output_dir,
+            sizes,
+            dimension=dimension,
+            quality=args.quality
+        )
+    except OSError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(EXIT_READ_ERROR)
 
     # Print results
     for file_info in created_files:
@@ -832,26 +1036,19 @@ def cmd_resize(args):
 
 def cmd_rename(args):
     """Handle the rename subcommand."""
-    import shutil
-
-    input_path = Path(args.file)
-
-    # Check if file exists
-    if not input_path.exists():
-        print(f"Error: File not found: {input_path}", file=sys.stderr)
-        sys.exit(3)
+    input_path = validate_input_file(args.file)
 
     # Check if at least one action flag is provided
     if not args.ext and not args.prefix_exif_date:
         print("Error: At least one action flag (--ext or --prefix-exif-date) is required",
               file=sys.stderr)
-        sys.exit(2)
+        sys.exit(EXIT_INVALID_ARGS)
 
     # Try to read the image format
     image_format = get_image_format(input_path)
     if image_format is None:
         print(f"Error: Cannot read image: {input_path}", file=sys.stderr)
-        sys.exit(4)
+        sys.exit(EXIT_READ_ERROR)
 
     # Determine new extension if --ext flag is set
     new_ext = None
@@ -905,15 +1102,34 @@ def cmd_rename(args):
     try:
         if output_path.exists() and os.path.samefile(input_path, output_path):
             # Same file on case-insensitive filesystem - rename via temp file
-            import tempfile
-            temp_path = output_path.parent / f".tmp_{new_filename}"
-            shutil.copy2(input_path, temp_path)
-            os.remove(input_path)
-            shutil.move(str(temp_path), str(output_path))
+            # Use tempfile.mkstemp for unpredictable temp filename (L1 security fix)
+            fd, temp_name = tempfile.mkstemp(
+                dir=str(output_path.parent),
+                prefix='.imgpro_tmp_',
+                suffix=output_path.suffix
+            )
+            temp_path = Path(temp_name)
+            try:
+                os.close(fd)
+                shutil.copy2(input_path, temp_path)
+                os.remove(input_path)
+                shutil.move(str(temp_path), str(output_path))
+            except Exception:
+                # Clean up temp file on failure
+                if temp_path.exists():
+                    try:
+                        temp_path.unlink()
+                    except OSError:
+                        pass
+                raise
             print(f"Created: {output_path}")
             return [str(output_path)]
     except OSError:
         pass  # Files are different, proceed normally
+
+    # Warn if output file already exists (preserves backward compatibility)
+    if output_path.exists():
+        print(f"Warning: Overwriting existing file: {output_path}", file=sys.stderr)
 
     # Copy the file (non-destructive)
     shutil.copy2(input_path, output_path)
@@ -927,39 +1143,28 @@ def cmd_rename(args):
 
 def cmd_convert(args):
     """Handle the convert subcommand."""
-    input_path = Path(args.file)
-
-    # Check if file exists
-    if not input_path.exists():
-        print(f"Error: File not found: {input_path}", file=sys.stderr)
-        sys.exit(3)
+    input_path = validate_input_file(args.file)
 
     # Validate format option
     if not is_supported_output_format(args.format):
         print(f"Error: Unsupported output format: {args.format}", file=sys.stderr)
         print(f"Supported formats: {', '.join(sorted(set(SUPPORTED_OUTPUT_FORMATS.keys())))}",
               file=sys.stderr)
-        sys.exit(2)
+        sys.exit(EXIT_INVALID_ARGS)
 
     # Validate quality
     if args.quality < 1 or args.quality > 100:
         print(f"Error: Quality must be between 1-100, got {args.quality}", file=sys.stderr)
-        sys.exit(2)
+        sys.exit(EXIT_INVALID_ARGS)
 
     # Try to read the image to verify it's valid
     image_format = get_image_format(input_path)
     if image_format is None:
         print(f"Error: Cannot read image: {input_path}", file=sys.stderr)
-        sys.exit(4)
+        sys.exit(EXIT_READ_ERROR)
 
-    # Determine output path (default: output/ next to source file)
-    # If input is already in an "output" dir (e.g., from chaining), reuse it
-    if args.output:
-        output_dir = Path(args.output)
-    elif input_path.parent.name == "output":
-        output_dir = input_path.parent
-    else:
-        output_dir = input_path.parent / "output"
+    # Determine output path
+    output_dir = resolve_output_dir(args.output, input_path)
     target_ext = get_target_extension(args.format)
     output_filename = input_path.stem + target_ext
     output_path = output_dir / output_filename
@@ -985,7 +1190,7 @@ def cmd_convert(args):
         return [str(output_path)]
     else:
         print(f"Error: Failed to convert image", file=sys.stderr)
-        sys.exit(4)
+        sys.exit(EXIT_READ_ERROR)
 
 
 def main():
@@ -1022,154 +1227,81 @@ def _create_parser():
     # Create subparsers for different commands
     subparsers = parser.add_subparsers(dest='command', help='Available commands')
 
-    # Info command
+    _add_info_parser(subparsers)
+    _add_resize_parser(subparsers)
+    _add_rename_parser(subparsers)
+    _add_convert_parser(subparsers)
+
+    return parser
+
+
+def _add_info_parser(subparsers):
+    """Add the info subcommand parser."""
     info_parser = subparsers.add_parser(
         'info',
         help='Display image information and metadata',
         description='Inspect an image file and report metadata, orientation, and aspect ratio'
     )
-
-    info_parser.add_argument(
-        'file',
-        help='Path to image file'
-    )
-
-    info_parser.add_argument(
-        '--json',
-        action='store_true',
-        help='Output in JSON format'
-    )
-
-    info_parser.add_argument(
-        '--short',
-        action='store_true',
-        help='Output as a single CSV line'
-    )
-
-    info_parser.add_argument(
-        '--exif',
-        action='store_true',
-        help='Show curated EXIF metadata'
-    )
-
-    info_parser.add_argument(
-        '--exif-all',
-        action='store_true',
-        help='Show all EXIF metadata tags'
-    )
-
+    info_parser.add_argument('file', help='Path to image file')
+    info_parser.add_argument('--json', action='store_true', help='Output in JSON format')
+    info_parser.add_argument('--short', action='store_true', help='Output as a single CSV line')
+    info_parser.add_argument('--exif', action='store_true', help='Show curated EXIF metadata')
+    info_parser.add_argument('--exif-all', action='store_true', help='Show all EXIF metadata tags')
     info_parser.set_defaults(func=cmd_info)
 
-    # Resize command
+
+def _add_resize_parser(subparsers):
+    """Add the resize subcommand parser."""
     resize_parser = subparsers.add_parser(
         'resize',
         help='Resize images to multiple dimensions',
         description='Resize an image to multiple widths or heights while maintaining aspect ratio'
     )
-
-    resize_parser.add_argument(
-        '--width',
-        type=str,
-        help='Comma-separated list of target widths (e.g., 300,600,900)'
-    )
-
-    resize_parser.add_argument(
-        '--height',
-        type=str,
-        help='Comma-separated list of target heights (e.g., 400,800)'
-    )
-
-    resize_parser.add_argument(
-        'file',
-        help='Path to input image file'
-    )
-
-    resize_parser.add_argument(
-        '--output',
-        default=None,
-        help='Output directory (default: output/ next to source file)'
-    )
-
-    resize_parser.add_argument(
-        '--quality',
-        type=int,
-        default=90,
-        help='JPEG quality 1-100 (default: 90)'
-    )
-
+    resize_parser.add_argument('--width', type=str,
+                               help='Comma-separated list of target widths (e.g., 300,600,900)')
+    resize_parser.add_argument('--height', type=str,
+                               help='Comma-separated list of target heights (e.g., 400,800)')
+    resize_parser.add_argument('file', help='Path to input image file')
+    resize_parser.add_argument('--output', default=None,
+                               help='Output directory (default: output/ next to source file)')
+    resize_parser.add_argument('--quality', type=int, default=DEFAULT_RESIZE_QUALITY,
+                               help=f'JPEG quality 1-100 (default: {DEFAULT_RESIZE_QUALITY})')
     resize_parser.set_defaults(func=cmd_resize)
 
-    # Rename command
+
+def _add_rename_parser(subparsers):
+    """Add the rename subcommand parser."""
     rename_parser = subparsers.add_parser(
         'rename',
         help='Rename image files based on format or EXIF data',
         description='Rename images by correcting extensions or adding EXIF date prefixes'
     )
-
-    rename_parser.add_argument(
-        'file',
-        help='Path to image file'
-    )
-
-    rename_parser.add_argument(
-        '--ext',
-        action='store_true',
-        help='Correct file extension based on actual image format'
-    )
-
-    rename_parser.add_argument(
-        '--prefix-exif-date',
-        action='store_true',
-        help='Prepend EXIF date to filename (format: YYYY-MM-DDTHHMMSS_)'
-    )
-
-    rename_parser.add_argument(
-        '--output',
-        help='Output directory (default: same as source file)'
-    )
-
+    rename_parser.add_argument('file', help='Path to image file')
+    rename_parser.add_argument('--ext', action='store_true',
+                               help='Correct file extension based on actual image format')
+    rename_parser.add_argument('--prefix-exif-date', action='store_true',
+                               help='Prepend EXIF date to filename (format: YYYY-MM-DDTHHMMSS_)')
+    rename_parser.add_argument('--output', help='Output directory (default: same as source file)')
     rename_parser.set_defaults(func=cmd_rename)
 
-    # Convert command
+
+def _add_convert_parser(subparsers):
+    """Add the convert subcommand parser."""
     convert_parser = subparsers.add_parser(
         'convert',
         help='Convert images between formats',
         description='Convert images to different formats (e.g., HEIC to JPEG)'
     )
-
-    convert_parser.add_argument(
-        'file',
-        help='Path to source image file'
-    )
-
-    convert_parser.add_argument(
-        '--format', '-f',
-        required=True,
-        help='Target format (jpeg, jpg, png, webp)'
-    )
-
-    convert_parser.add_argument(
-        '--output',
-        default=None,
-        help='Output directory (default: output/ next to source file)'
-    )
-
-    convert_parser.add_argument(
-        '--quality',
-        type=int,
-        default=80,
-        help='JPEG quality 1-100 (default: 80)'
-    )
-
-    convert_parser.add_argument(
-        '--strip-exif',
-        action='store_true',
-        help='Remove EXIF metadata from output'
-    )
-
+    convert_parser.add_argument('file', help='Path to source image file')
+    convert_parser.add_argument('--format', '-f', required=True,
+                                help='Target format (jpeg, jpg, png, webp)')
+    convert_parser.add_argument('--output', default=None,
+                                help='Output directory (default: output/ next to source file)')
+    convert_parser.add_argument('--quality', type=int, default=DEFAULT_CONVERT_QUALITY,
+                                help=f'JPEG quality 1-100 (default: {DEFAULT_CONVERT_QUALITY})')
+    convert_parser.add_argument('--strip-exif', action='store_true',
+                                help='Remove EXIF metadata from output')
     convert_parser.set_defaults(func=cmd_convert)
-
-    return parser
 
 
 def _execute_chain(segments):
@@ -1188,6 +1320,16 @@ def _execute_chain(segments):
     output_files = None
 
     for i, segment in enumerate(segments):
+        # TOCTOU detection: verify intermediate files still exist before passing
+        # to the next command in the chain
+        if output_files is not None and i > 0:
+            missing = [f for f in output_files if not Path(f).exists()]
+            if missing:
+                for mf in missing:
+                    print(f"Error: Intermediate file disappeared during chain: {mf}",
+                          file=sys.stderr)
+                sys.exit(EXIT_READ_ERROR)
+
         if output_files is not None:
             # Chained command: inject file from previous output
             if not output_files:
@@ -1203,7 +1345,7 @@ def _execute_chain(segments):
                     sys.exit(e.code)
                 if not args.command:
                     print("Error: Invalid command in chain", file=sys.stderr)
-                    sys.exit(2)
+                    sys.exit(EXIT_INVALID_ARGS)
                 try:
                     result = args.func(args)
                 except SystemExit as e:
@@ -1219,7 +1361,7 @@ def _execute_chain(segments):
                 sys.exit(e.code)
             if not args.command:
                 parser.print_help()
-                sys.exit(0)
+                sys.exit(EXIT_SUCCESS)
             try:
                 output_files = args.func(args)
             except SystemExit as e:
@@ -1237,7 +1379,7 @@ def _main_impl():
         # No arguments at all - show help
         parser = _create_parser()
         parser.print_help()
-        sys.exit(0)
+        sys.exit(EXIT_SUCCESS)
 
     if len(segments) == 1:
         # Single command (no chain) - use standard argparse flow
@@ -1247,7 +1389,7 @@ def _main_impl():
         # If no command specified, show help
         if not args.command:
             parser.print_help()
-            sys.exit(0)
+            sys.exit(EXIT_SUCCESS)
 
         # Execute the command
         args.func(args)

@@ -7,7 +7,6 @@ import argparse
 # Import the helper functions
 from imgpro import (
     parse_sizes,
-    validate_jpeg,
     get_file_size_kb,
     resize_image,
 )
@@ -57,50 +56,6 @@ class TestParseSizes:
         with pytest.raises(argparse.ArgumentTypeError):
             parse_sizes("300.5,600")
 
-
-class TestValidateJpeg:
-    """Test validate_jpeg function."""
-
-    def test_validate_jpeg_lowercase_jpg(self):
-        """Test validation of .jpg extension."""
-        filepath = Path("photo.jpg")
-        assert validate_jpeg(filepath) is True
-
-    def test_validate_jpeg_lowercase_jpeg(self):
-        """Test validation of .jpeg extension."""
-        filepath = Path("photo.jpeg")
-        assert validate_jpeg(filepath) is True
-
-    def test_validate_jpeg_uppercase_jpg(self):
-        """Test validation of .JPG extension."""
-        filepath = Path("photo.JPG")
-        assert validate_jpeg(filepath) is True
-
-    def test_validate_jpeg_uppercase_jpeg(self):
-        """Test validation of .JPEG extension."""
-        filepath = Path("photo.JPEG")
-        assert validate_jpeg(filepath) is True
-
-    def test_validate_jpeg_mixed_case(self):
-        """Test validation of mixed case extensions."""
-        # Mixed case extensions should fail (not in valid list)
-        filepath = Path("photo.Jpg")
-        assert validate_jpeg(filepath) is False
-
-    def test_validate_jpeg_png(self):
-        """Test that PNG files are rejected."""
-        filepath = Path("photo.png")
-        assert validate_jpeg(filepath) is False
-
-    def test_validate_jpeg_no_extension(self):
-        """Test that files with no extension are rejected."""
-        filepath = Path("photo")
-        assert validate_jpeg(filepath) is False
-
-    def test_validate_jpeg_with_path(self):
-        """Test validation with full path."""
-        filepath = Path("/home/user/photos/vacation.jpg")
-        assert validate_jpeg(filepath) is True
 
 
 class TestGetFileSizeKb:
@@ -515,19 +470,15 @@ class TestResizeImageExceptionHandling:
 
     def test_resize_image_unreadable_file(self, temp_dir):
         """Test handling of unreadable/corrupt image file."""
-        import sys
-
         # Create a corrupt "image" file
         corrupt_file = temp_dir / "corrupt.jpg"
         corrupt_file.write_text("This is not a valid JPEG file")
 
         output_dir = temp_dir / "resized"
 
-        # resize_image should call sys.exit(4) for unreadable images
-        with pytest.raises(SystemExit) as exc_info:
+        # resize_image should raise OSError for unreadable images
+        with pytest.raises(OSError):
             resize_image(corrupt_file, output_dir, [300], dimension='width', quality=90)
-
-        assert exc_info.value.code == 4
 
 
 class TestExtractExifExceptionHandling:
