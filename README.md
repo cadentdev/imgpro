@@ -74,32 +74,29 @@ A command-line tool for generating multiple resolutions of images to support res
    chmod +x imgpro.py
    ```
 
-### Add to PATH (optional)
+### Install with pipx (recommended)
 
-To run `imgpro` from anywhere, create a wrapper script that uses the virtual environment:
+[pipx](https://pipx.pypa.io/) installs `imgpro` in an isolated environment and adds it to your PATH:
 
-1. **Create the wrapper script**:
+```bash
+# Standard install (uses a snapshot of the code)
+pipx install .
 
-   ```bash
-   sudo tee /usr/local/bin/imgpro > /dev/null << 'EOF'
-   #!/bin/bash
-   /path/to/imgpro/.venv/bin/python /path/to/imgpro/imgpro.py "$@"
-   EOF
-   ```
+# Editable install (reflects changes to imgpro.py immediately — useful for development)
+pipx install --editable .
+```
 
-   Replace `/path/to/imgpro` with your actual installation path.
+Then run from anywhere:
 
-2. **Make it executable**:
+```bash
+imgpro --help
+```
 
-   ```bash
-   sudo chmod +x /usr/local/bin/imgpro
-   ```
+To uninstall:
 
-3. **Test it**:
-
-   ```bash
-   imgpro --help
-   ```
+```bash
+pipx uninstall imgpro
+```
 
 ### Troubleshooting Installation
 
@@ -797,6 +794,7 @@ imgpro/
 │   ├── test_resize_helpers.py # Resize command unit tests
 │   └── test_chain_cli.py    # Command chaining integration tests
 ├── imgpro.py              # Main CLI tool
+├── pyproject.toml           # Package config (enables pipx install)
 ├── requirements.txt         # Python dependencies
 ├── PRD.md                   # Product Requirements Document
 ├── TASKS.md                 # Task tracking and project status
