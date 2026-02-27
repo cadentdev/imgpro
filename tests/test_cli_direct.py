@@ -548,7 +548,7 @@ class TestMainFunction:
 
     def test_main_version_flag(self, monkeypatch, capsys):
         """Test main with --version flag."""
-        from imgpro import main
+        from imgpro import main, __version__
 
         monkeypatch.setattr(sys, 'argv', ['imgpro.py', '--version'])
 
@@ -558,11 +558,11 @@ class TestMainFunction:
         assert exc_info.value.code == 0
 
         captured = capsys.readouterr()
-        assert '1.3.1' in captured.out
+        assert __version__ in captured.out
 
     def test_main_version_short_flag(self, monkeypatch, capsys):
         """Test main with -v flag."""
-        from imgpro import main
+        from imgpro import main, __version__
 
         monkeypatch.setattr(sys, 'argv', ['imgpro.py', '-v'])
 
@@ -572,7 +572,7 @@ class TestMainFunction:
         assert exc_info.value.code == 0
 
         captured = capsys.readouterr()
-        assert '1.3.1' in captured.out
+        assert __version__ in captured.out
 
     def test_main_help_flag(self, monkeypatch, capsys):
         """Test main with --help flag."""
